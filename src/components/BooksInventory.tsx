@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { User } from '../App';
 import { Search, Plus, Edit, Trash2, X } from 'lucide-react';
-import axios from 'axios';
 import api from '../api/axios';
 
 interface BooksInventoryProps {
@@ -45,11 +44,19 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
 
   const fetchBooks = async () => {
     try {
-   
-      const res = await axios.get('http://127.0.0.1:8000/api/books');
-      
+      const res = await api.get('/books');
       const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
-      setBooks(data);
+      const normalizedBooks = data.map((book: any) => ({
+        ...book,
+        callNumber: book.callNumber ?? book.call_number ?? '',
+        totalCopies: book.totalCopies ?? book.total ?? 0,
+        available: book.available ?? 0,
+        borrowed: book.borrowed ?? 0,
+        damaged: book.damaged ?? 0,
+        lost: book.lost ?? 0,
+        status: book.status ?? 'Available',
+      }));
+      setBooks(normalizedBooks);
       console.log("Books loaded successfully:", data);
     } catch (err) {
       console.error("Fetch error details:", err);
@@ -60,8 +67,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        // Use the full URL to be safe, or ensure 'api' instance has the correct baseURL
-        const response = await axios.post('http://127.0.0.1:8000/api/books', { 
+        const response = await api.post('/books', { 
             call_number: formData.callNumber,
             title: formData.title,
             author: formData.author,
@@ -86,7 +92,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
   const handleDelete = async (id: number) => {
     if(!confirm("Delete this book?")) return;
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/books/${id}`);
+      await api.delete(`/books/${id}`);
       setBooks(books.filter(b => b.id !== id));
     } catch (err) {
       console.error("Delete error:", err);
@@ -113,31 +119,6 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
       default: return 'bg-[#9DA4A6] text-white';
     }
   };
- const handleSaveBook = async (bookData: any) => {// Accept bookData as an argument
-  try {
-    const response = await fetch('http://127.0.0.1:8000/api/books', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json', // Highly recommended for Laravel APIs
-      },
-      body: JSON.stringify(bookData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Server Error:', errorData);
-      return;
-    }
-
-    const result = await response.json();
-    console.log('Book saved successfully:', result);
-  } catch (error) {
-    console.error('Network error:', error);
-  }
-};
-
-
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6">

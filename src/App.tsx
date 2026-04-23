@@ -60,6 +60,30 @@ function App() {
             <BooksInventory user={currentUser!} onLogout={handleLogout} />
           </ProtectedRoute>
         } />
+        
+        <Route path="/admin/users" element={
+          <ProtectedRoute user={currentUser} role="admin">
+            <UserManagement user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/notifications" element={
+          <ProtectedRoute user={currentUser} role="admin">
+            <Notifications user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/reports" element={
+          <ProtectedRoute user={currentUser} role="admin">
+            <Reports user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/settings" element={
+          <ProtectedRoute user={currentUser} role="admin">
+            <Settings user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
 
         <Route path="/admin/attendance" element={
           <ProtectedRoute user={currentUser} role="admin">
@@ -101,6 +125,30 @@ function App() {
         <Route path="/staff/attendance" element={
           <ProtectedRoute user={currentUser} role="staff">
             <AttendanceManagement user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/staff/borrowing" element={
+          <ProtectedRoute user={currentUser} role="staff">
+            <BorrowingReturning user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/staff/overdue" element={
+          <ProtectedRoute user={currentUser} role="staff">
+            <OverdueFines user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/staff/notifications" element={
+          <ProtectedRoute user={currentUser} role="staff">
+            <Notifications user={currentUser!} onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/staff/reports" element={
+          <ProtectedRoute user={currentUser} role="staff">
+            <Reports user={currentUser!} onLogout={handleLogout} />
           </ProtectedRoute>
         } />
 

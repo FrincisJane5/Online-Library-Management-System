@@ -6,21 +6,31 @@ use Illuminate\Database\Eloquent\Model;
 
 class Book extends Model
 {
-    protected $fillable = ['call_number', 'title', 'author', 'category', 'total', 'available', 'status'];
+    protected $fillable = [
+        'call_number',
+        'title',
+        'author',
+        'category',
+        'total',
+        'available',
+        'borrowed',
+        'damaged',
+        'lost',
+        'status',
+    ];
 
-    // This tells Laravel to include these "mapped" names in the JSON output
-   protected $appends = ['callNumber', 'totalCopies'];
-   
+    // Include frontend-friendly aliases in JSON responses.
+    protected $appends = ['callNumber', 'totalCopies'];
 
-public function getCallNumberAttribute()
+    public function getCallNumberAttribute(): string
     {
-       return $this->getAttribute('call_number') ?? 'N/A';
+        return $this->attributes['call_number'] ?? 'N/A';
     }
 
-    public function getTotalCopiesAttribute()
+    public function getTotalCopiesAttribute(): int
     {
-       return $this->getAttribute('total_copies') ?? 0;
+        return (int) ($this->attributes['total'] ?? 0);
     }
 
-    protected $hidden = ['call_number', 'total_copies'];
+    protected $hidden = ['call_number', 'total'];
 }
