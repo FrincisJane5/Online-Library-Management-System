@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../App';
 import { Search, Send, Check } from 'lucide-react';
+import api from '../api/axios';
 
 interface OverdueFinesProps {
   user: User;
@@ -20,31 +21,49 @@ interface FineRecord {
   lastNotification: string;
 }
 
-const mockFines: FineRecord[] = [
-  { id: 1, studentName: 'Pedro Reyes', bookTitle: 'Database System Concepts', dateBorrowed: '2025-01-15', dueDate: '2026-01-22', daysOverdue: 19, fineAmount: 95, status: 'Unpaid', lastNotification: '2025-02-08 10:30' },
-  { id: 2, studentName: 'Anna Cruz', bookTitle: 'Physics for Scientists', dateBorrowed: '2025-01-20', dueDate: '2026-01-27', daysOverdue: 14, fineAmount: 70, status: 'Unpaid', lastNotification: '2025-02-09 14:15' },
-  { id: 3, studentName: 'Carlos Mendoza', bookTitle: 'Human Resource Management', dateBorrowed: '2025-01-10', dueDate: '2026-01-17', daysOverdue: 24, fineAmount: 120, status: 'Paid', lastNotification: '2025-02-05 09:20' },
-  { id: 4, studentName: 'Lisa Tan', bookTitle: 'Introduction to Algorithms', dateBorrowed: '2025-01-25', dueDate: '2026-02-01', daysOverdue: 9, fineAmount: 45, status: 'Unpaid', lastNotification: '2025-02-09 16:45' },
-  { id: 5, studentName: 'Miguel Torres', bookTitle: 'Fundamentals of Nursing', dateBorrowed: '2025-01-12', dueDate: '2026-01-19', daysOverdue: 22, fineAmount: 110, status: 'Paid', lastNotification: '2025-02-07 11:00' }
-];
-
 export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
-  const [fines] = useState<FineRecord[]>(mockFines);
+  const [fines, setFines] = useState<FineRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [reminderSent, setReminderSent] = useState(false);
 
-  const filteredFines = fines.filter((fine) => {
+  const fetchFines = async () => {
+    const response = await api.get('/fines');
+    setFines(response.data);
+  };
+
+  useEffect(() => {
+    fetchFines().catch(console.error);
+  }, []);
+
+  const filteredFines = useMemo(() => fines.filter((fine) => {
     const matchesSearch = 
       fine.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       fine.bookTitle.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || fine.status === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+  }), [fines, searchTerm, statusFilter]);
 
-  const handleSendReminders = () => {
-    setReminderSent(true);
-    setTimeout(() => setReminderSent(false), 3000);
+  const handleSendReminders = async () => {
+    try {
+      await api.post('/fines/reminders');
+      await fetchFines();
+      setReminderSent(true);
+      setTimeout(() => setReminderSent(false), 3000);
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.response?.data?.message || 'Failed to send reminders.');
+    }
+  };
+
+  const markPaid = async (id: number) => {
+    try {
+      await api.patch(`/fines/${id}/pay`);
+      await fetchFines();
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.response?.data?.message || 'Failed to mark fine as paid.');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -153,13 +172,10 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         {fine.status === 'Unpaid' && (
-                          <button className="px-3 py-1 text-green-600 border border-green-600 hover:bg-green-50 rounded transition-colors">
+                          <button onClick={() => markPaid(fine.id)} className="px-3 py-1 text-green-600 border border-green-600 hover:bg-green-50 rounded transition-colors">
                             Mark Paid
                           </button>
                         )}
-                        <button className="px-3 py-1 text-blue-600 border border-blue-600 hover:bg-blue-50 rounded transition-colors">
-                          View
-                        </button>
                       </div>
                     </td>
                   </tr>

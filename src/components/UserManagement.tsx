@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../App';
-import { Plus, Edit, AlertCircle, X } from 'lucide-react';
+import { Plus, AlertCircle, X } from 'lucide-react';
+import api from '../api/axios';
 
 interface UserManagementProps {
   user: User;
   onLogout: () => void;
+  onCurrentUserUpdated?: (user: User) => void;
 }
 
 interface StaffUser {
@@ -18,16 +20,78 @@ interface StaffUser {
   lastLogin: string;
 }
 
-const mockStaffUsers: StaffUser[] = [
-  { id: 1, fullName: 'Maria Santos', username: 'admin', role: 'Admin', status: 'Active', dateCreated: '2024-01-15', lastLogin: '2025-02-10 08:30' },
-  { id: 2, fullName: 'Juan Dela Cruz', username: 'staff', role: 'Staff', status: 'Active', dateCreated: '2024-03-20', lastLogin: '2025-02-10 09:15' },
-  { id: 3, fullName: 'Rosa Garcia', username: 'rosa.garcia', role: 'Staff', status: 'Active', dateCreated: '2024-06-10', lastLogin: '2025-02-09 14:20' },
-  { id: 4, fullName: 'Carlos Reyes', username: 'carlos.reyes', role: 'Staff', status: 'Deactivated', dateCreated: '2024-02-05', lastLogin: '2025-01-15 10:00' }
-];
-
-export default function UserManagement({ user, onLogout }: UserManagementProps) {
-  const [staffUsers] = useState<StaffUser[]>(mockStaffUsers);
+export default function UserManagement({ user, onLogout, onCurrentUserUpdated }: UserManagementProps) {
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    username: '',
+    password: '',
+  });
+
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/users');
+      setStaffUsers(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error('Failed to load users', error);
+      alert('Unable to fetch users. Please check backend connection.');
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const resetForm = () => {
+    setFormData({ fullName: '', username: '', password: '' });
+    setEditingUser(null);
+  };
+
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      if (editingUser) {
+        const response = await api.put(`/users/${editingUser.id}`, {
+          full_name: formData.fullName,
+          username: formData.username,
+        });
+        if (editingUser.id.toString() === user.id) {
+          onCurrentUserUpdated?.({
+            ...user,
+            fullName: response.data.fullName ?? formData.fullName,
+            username: response.data.username ?? formData.username,
+          });
+        }
+      } else {
+        await api.post('/users', {
+          full_name: formData.fullName,
+          username: formData.username,
+          password: formData.password,
+          role: 'staff',
+        });
+      }
+      setShowAddModal(false);
+      resetForm();
+      await fetchUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to save staff account.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (staffUser: StaffUser, status: 'Active' | 'Deactivated') => {
+    try {
+      await api.patch(`/users/${staffUser.id}/status`, { status });
+      await fetchUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update account status.');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     return status === 'Active' 
@@ -51,7 +115,10 @@ export default function UserManagement({ user, onLogout }: UserManagementProps) 
             <p className="text-slate-600">Manage library staff accounts and permissions.</p>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -102,16 +169,33 @@ export default function UserManagement({ user, onLogout }: UserManagementProps) 
                     <td className="px-6 py-4 text-slate-600">{staffUser.lastLogin}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="px-3 py-1 text-blue-600 border border-blue-600 hover:bg-blue-50 rounded transition-colors">
+                        <button
+                          onClick={() => {
+                            setEditingUser(staffUser);
+                            setFormData({
+                              fullName: staffUser.fullName,
+                              username: staffUser.username,
+                              password: '',
+                            });
+                            setShowAddModal(true);
+                          }}
+                          className="px-3 py-1 text-blue-600 border border-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        >
                           Edit
                         </button>
                         {staffUser.status === 'Active' && staffUser.role !== 'Admin' && (
-                          <button className="px-3 py-1 text-red-600 border border-red-600 hover:bg-red-50 rounded transition-colors">
+                          <button
+                            onClick={() => handleStatusChange(staffUser, 'Deactivated')}
+                            className="px-3 py-1 text-red-600 border border-red-600 hover:bg-red-50 rounded transition-colors"
+                          >
                             Deactivate
                           </button>
                         )}
                         {staffUser.status === 'Deactivated' && (
-                          <button className="px-3 py-1 text-green-600 border border-green-600 hover:bg-green-50 rounded transition-colors">
+                          <button
+                            onClick={() => handleStatusChange(staffUser, 'Active')}
+                            className="px-3 py-1 text-green-600 border border-green-600 hover:bg-green-50 rounded transition-colors"
+                          >
                             Activate
                           </button>
                         )}
@@ -129,18 +213,26 @@ export default function UserManagement({ user, onLogout }: UserManagementProps) 
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-md w-full">
               <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                <h3 className="text-slate-900">Add Staff Account</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-1 hover:bg-slate-100 rounded">
+                <h3 className="text-slate-900">{editingUser ? 'Edit Staff Account' : 'Add Staff Account'}</h3>
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    resetForm();
+                  }}
+                  className="p-1 hover:bg-slate-100 rounded"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form className="p-6 space-y-4">
+              <form className="p-6 space-y-4" onSubmit={handleCreateOrUpdate}>
                 <div>
                   <label className="block text-slate-700 mb-2">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="Enter full name"
                     required
@@ -152,22 +244,28 @@ export default function UserManagement({ user, onLogout }: UserManagementProps) 
                   </label>
                   <input
                     type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="Enter username"
                     required
                   />
                 </div>
+                {!editingUser && (
                 <div>
                   <label className="block text-slate-700 mb-2">
                     Temporary Password <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="Enter temporary password"
                     required
                   />
                 </div>
+                )}
                 <div>
                   <label className="block text-slate-700 mb-2">
                     Role <span className="text-red-500">*</span>
@@ -183,20 +281,20 @@ export default function UserManagement({ user, onLogout }: UserManagementProps) 
                 <div className="flex gap-3 justify-end pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => {
+                      setShowAddModal(false);
+                      resetForm();
+                    }}
                     className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowAddModal(false);
-                    }}
+                    disabled={isLoading}
                     className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
                   >
-                    Create Account
+                    {isLoading ? 'Saving...' : (editingUser ? 'Save Changes' : 'Create Account')}
                   </button>
                 </div>
               </form>

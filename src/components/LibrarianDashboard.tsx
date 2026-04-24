@@ -4,6 +4,7 @@ import Layout from './Layout';
 import { User } from '../App';
 import { BookOpen, TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardProps {
   user: User;
@@ -12,6 +13,7 @@ interface DashboardProps {
 
 export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
   const [dashboard, setDashboard] = useState<any>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios.get("http://localhost:8000/api/dashboard")
@@ -51,7 +53,7 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
           {/* Books */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition">
+          <button onClick={() => navigate('/admin/books')} className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition text-left">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-[#1B764C]/10 rounded-lg flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-[#1B764C]" />
@@ -59,10 +61,10 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
             </div>
             <p className="text-[#9DA4A6] mb-1">Total Books</p>
             <p className="text-[#4B4C58] text-xl font-semibold">{dashboard.stats.books}</p>
-          </div>
+          </button>
 
           {/* Borrowed */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition">
+          <button onClick={() => navigate('/admin/borrowing')} className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition text-left">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-[#79C39F]/20 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-[#016937]" />
@@ -70,10 +72,10 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
             </div>
             <p className="text-[#9DA4A6] mb-1">Books Borrowed</p>
             <p className="text-[#4B4C58] text-xl font-semibold">{dashboard.stats.borrowed}</p>
-          </div>
+          </button>
 
           {/* Students */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition">
+          <button onClick={() => navigate('/admin/attendance')} className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition text-left">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-[#EF8B2D]/10 rounded-lg flex items-center justify-center">
                 <AlertCircle className="w-6 h-6 text-[#EF8B2D]" />
@@ -81,18 +83,18 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
             </div>
             <p className="text-[#9DA4A6] mb-1">Students</p>
             <p className="text-[#4B4C58] text-xl font-semibold">{dashboard.stats.students}</p>
-          </div>
+          </button>
 
           {/* Placeholder for fines */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition">
+          <button onClick={() => navigate('/admin/overdue')} className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6] cursor-pointer hover:scale-105 transition text-left">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-[#D72A24]/10 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-[#D72A24]" />
               </div>
             </div>
             <p className="text-[#9DA4A6] mb-1">Fines</p>
-            <p className="text-[#4B4C58] text-xl font-semibold">₱0</p>
-          </div>
+            <p className="text-[#4B4C58] text-xl font-semibold">₱{dashboard.stats.fines ?? 0}</p>
+          </button>
 
         </div>
 
@@ -101,7 +103,7 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
 
           {/* 📊 Chart */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <h3 className="text-[#4B4C58] mb-4">Library Visits</h3>
+            <h3 className="text-[#4B4C58] mb-4">Library Visits (Monday to Saturday)</h3>
 
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={visitData}>

@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import LoginScreen from './components/LoginScreen';
 import LibrarianDashboard from './components/LibrarianDashboard';
@@ -23,13 +23,26 @@ export interface User {
   username: string;
   fullName: string;
   role: 'admin' | 'staff';
+  status?: 'Active' | 'Deactivated';
 }
 
 function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('library_current_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('library_current_user', JSON.stringify(currentUser));
+      return;
+    }
+    localStorage.removeItem('library_current_user');
+  }, [currentUser]);
 
   const handleLogin = (user: User) => setCurrentUser(user);
   const handleLogout = () => setCurrentUser(null);
+  const handleCurrentUserRefresh = (user: User) => setCurrentUser(user);
 
   return (
     <Router>
@@ -63,7 +76,11 @@ function App() {
         
         <Route path="/admin/users" element={
           <ProtectedRoute user={currentUser} role="admin">
-            <UserManagement user={currentUser!} onLogout={handleLogout} />
+            <UserManagement
+              user={currentUser!}
+              onLogout={handleLogout}
+              onCurrentUserUpdated={handleCurrentUserRefresh}
+            />
           </ProtectedRoute>
         } />
 

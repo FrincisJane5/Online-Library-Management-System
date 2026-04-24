@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../App';
 import { Save, Info } from 'lucide-react';
+import api from '../api/axios';
 
 interface SettingsProps {
   user: User;
@@ -15,15 +16,41 @@ export default function Settings({ user, onLogout }: SettingsProps) {
     openTime: '08:00',
     closeTime: '17:00',
     emailNotifications: true,
-    smsNotifications: false
+    smsNotifications: false,
+    libraryPolicies: ''
   });
 
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    api.get('/settings').then((res) => {
+      const payload = res.data;
+      setSettings({
+        loanDuration: String(payload.loan_duration ?? 7),
+        fineRate: String(payload.fine_rate ?? 5),
+        openTime: String(payload.open_time ?? '08:00'),
+        closeTime: String(payload.close_time ?? '17:00'),
+        emailNotifications: Boolean(payload.email_notifications),
+        smsNotifications: Boolean(payload.sms_notifications),
+        libraryPolicies: payload.library_policies ?? '',
+      });
+    }).catch(console.error);
+  }, []);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    api.put('/settings', {
+      loan_duration: Number(settings.loanDuration),
+      fine_rate: Number(settings.fineRate),
+      open_time: settings.openTime,
+      close_time: settings.closeTime,
+      email_notifications: settings.emailNotifications,
+      sms_notifications: settings.smsNotifications,
+      library_policies: settings.libraryPolicies,
+    }).then(() => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }).catch(() => alert('Failed to save settings.'));
   };
 
   return (
@@ -134,23 +161,31 @@ export default function Settings({ user, onLogout }: SettingsProps) {
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-slate-50">
+              <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                 <div>
                   <p className="text-slate-900">SMS Notifications</p>
-                  <p className="text-slate-600">Send notifications via SMS (for future implementation)</p>
+                  <p className="text-slate-600">Send notifications via SMS for due and overdue alerts</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer opacity-50">
+                <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     checked={settings.smsNotifications}
                     onChange={(e) => setSettings({ ...settings, smsNotifications: e.target.checked })}
                     className="sr-only peer"
-                    disabled
                   />
                   <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
                 </label>
               </div>
             </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+            <h3 className="text-slate-900 mb-4">Library Policies</h3>
+            <textarea
+              value={settings.libraryPolicies}
+              onChange={(e) => setSettings({ ...settings, libraryPolicies: e.target.value })}
+              className="w-full min-h-36 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Enter library policies..."
+            />
           </div>
 
           {/* System Information */}

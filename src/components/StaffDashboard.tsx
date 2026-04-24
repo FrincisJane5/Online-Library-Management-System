@@ -1,124 +1,130 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import Layout from './Layout';
 import { User } from '../App';
-import { BookOpen, TrendingUp, AlertCircle, DollarSign, Info } from 'lucide-react';
+import { BookOpen, RefreshCcw, Clock, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface DashboardProps {
+interface StaffDashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-const visitData = [
-  { day: 'Mon', visits: 45 },
-  { day: 'Tue', visits: 52 },
-  { day: 'Wed', visits: 38 },
-  { day: 'Thu', visits: 61 },
-  { day: 'Fri', visits: 55 },
-  { day: 'Sat', visits: 28 },
-  { day: 'Sun', visits: 15 }
-];
+export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) {
+  const [dashboard, setDashboard] = useState<any>(null);
 
-const recentActivities = [
-  { id: 1, dateTime: '2026-02-10 14:32', user: 'Juan Dela Cruz', action: 'Book Borrowed', details: '"Introduction to Physics" borrowed by Maria Santos' },
-  { id: 2, dateTime: '2026-02-10 14:15', user: 'Maria Santos', action: 'Book Returned', details: '"Data Structures" returned on time' },
-  { id: 3, dateTime: '2026-02-10 13:45', user: 'Juan Dela Cruz', action: 'Fine Paid', details: '₱50 fine paid by Pedro Reyes' },
-  { id: 4, dateTime: '2026-02-10 11:20', user: 'Juan Dela Cruz', action: 'Attendance', details: 'Student Anna Cruz logged attendance' }
-];
+  useEffect(() => {
+    // Assuming a specific endpoint for staff metrics
+    axios.get("http://localhost:8000/api/staff/dashboard")
+      .then(res => setDashboard(res.data))
+      .catch(err => console.error(err));
+  }, []);
 
-export default function StaffDashboard({ user, onLogout }: DashboardProps) {
+  if (!dashboard) {
+    return (
+      <Layout user={user} onLogout={onLogout}>
+        <div className="p-6 flex items-center justify-center h-64">
+           <p className="text-[#9DA4A6] animate-pulse">Loading workspace...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Focus on operational data (e.g., transactions handled)
+  const transactionData = dashboard.daily_stats.map((item: any) => ({
+    day: item.date,
+    processed: item.total_actions
+  }));
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6">
-        {/* Info Banner */}
-        <div className="bg-[#1B764C]/10 border border-[#1B764C] rounded-lg p-4 flex items-start gap-3">
-          <Info className="w-5 h-5 text-[#1B764C] flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[#4B4C58]">Welcome, Library Staff</p>
-            <p className="text-[#9DA4A6]">You can manage records but cannot change system configuration.</p>
-          </div>
-        </div>
 
-        {/* Page Header */}
+        {/* Header */}
         <div>
-          <h2 className="text-[#4B4C58] mb-2">Dashboard</h2>
-          <p className="text-[#9DA4A6]">Welcome back, {user.fullName}! Here's your library overview.</p>
+          <h2 className="text-[#4B4C58] text-2xl font-bold mb-1">Staff Terminal</h2>
+          <p className="text-[#9DA4A6]">
+            Welcome, {user.fullName}. You are logged in as Library Staff.
+          </p>
         </div>
 
-        {/* KPI Cards */}
+        {/* Task-Oriented KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-[#1B764C]/10 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-[#1B764C]" />
-              </div>
+
+          {/* Pending Approvals */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#EF8B2D] hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-2">
+               <p className="text-[#9DA4A6] font-medium">Pending Requests</p>
+               <Clock className="w-5 h-5 text-[#EF8B2D]" />
             </div>
-            <p className="text-[#9DA4A6] mb-1">Total Books</p>
-            <p className="text-[#4B4C58]">2,847</p>
+            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.pending_requests}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-[#79C39F]/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-[#016937]" />
-              </div>
+          {/* Books to Return Today */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#1B764C] hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-2">
+               <p className="text-[#9DA4A6] font-medium">Returns Due Today</p>
+               <RefreshCcw className="w-5 h-5 text-[#1B764C]" />
             </div>
-            <p className="text-[#9DA4A6] mb-1">Books Borrowed Today</p>
-            <p className="text-[#4B4C58]">24</p>
+            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.due_today}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-[#EF8B2D]/10 rounded-lg flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-[#EF8B2D]" />
-              </div>
+          {/* Active Borrows */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#4B4C58] hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-2">
+               <p className="text-[#9DA4A6] font-medium">Books Out</p>
+               <BookOpen className="w-5 h-5 text-[#4B4C58]" />
             </div>
-            <p className="text-[#9DA4A6] mb-1">Overdue Books</p>
-            <p className="text-[#4B4C58]">18</p>
+            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.active_loans}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-[#D72A24]/10 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-[#D72A24]" />
-              </div>
+          {/* Completed Today */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#79C39F] hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-2">
+               <p className="text-[#9DA4A6] font-medium">Processed Today</p>
+               <CheckCircle className="w-5 h-5 text-[#79C39F]" />
             </div>
-            <p className="text-[#9DA4A6] mb-1">Unpaid Fines</p>
-            <p className="text-[#4B4C58]">₱1,250</p>
+            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.completed_today}</p>
           </div>
+
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Bar Chart */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <h3 className="text-[#4B4C58] mb-4">Library Visits (Last 7 Days)</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={visitData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="visits" fill="#1B764C" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* 📊 Staff Activity Chart */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]/30">
+            <h3 className="text-[#4B4C58] font-semibold mb-4">Transaction Volume (Last 7 Days)</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={transactionData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip cursor={{fill: '#f3f4f6'}} />
+                <Bar dataKey="processed" fill="#1B764C" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <h3 className="text-[#4B4C58] mb-4">Recent Activity</h3>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="pb-3 border-b border-[#9DA4A6]/30 last:border-0">
-                  <div className="flex items-start justify-between mb-1">
-                    <span className="text-[#4B4C58]">{activity.action}</span>
-                    <span className="text-[#9DA4A6]">{activity.dateTime}</span>
+          {/* 🕒 My Recent Actions */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]/30">
+            <h3 className="text-[#4B4C58] font-semibold mb-4">Your Recent Actions</h3>
+            <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
+              {dashboard.my_activity.length === 0 ? (
+                <p className="text-[#9DA4A6] text-center py-10">No recent actions</p>
+              ) : (
+                dashboard.my_activity.map((activity: any, index: number) => (
+                  <div key={index} className="flex gap-3 items-start">
+                    <div className="mt-1 w-2 h-2 rounded-full bg-[#1B764C] shrink-0" />
+                    <div>
+                      <p className="text-sm text-[#4B4C58] font-medium leading-tight">{activity.action}</p>
+                      <p className="text-xs text-[#9DA4A6]">{activity.time_ago}</p>
+                    </div>
                   </div>
-                  <p className="text-[#9DA4A6]">{activity.details}</p>
-                  <p className="text-[#9DA4A6]">by {activity.user}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
+
         </div>
       </div>
     </Layout>

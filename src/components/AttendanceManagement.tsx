@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../App';
-import { Search, Download, Printer, Calendar } from 'lucide-react';
+import { Search, Download, Printer, Calendar, Plus } from 'lucide-react';
 import axios from 'axios';
 
 interface AttendanceManagementProps {
@@ -11,6 +11,7 @@ interface AttendanceManagementProps {
 
 interface Attendance {
   id: number;
+  id_number?: string;
   created_at: string;
   name: string;
   course: string;
@@ -24,6 +25,16 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   const [searchTerm, setSearchTerm] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newAttendance, setNewAttendance] = useState({
+    id_number: '',
+    name: '',
+    email: '',
+    phone: '',
+    course: '',
+    year: '',
+    purpose: '',
+  });
 
   // ✅ FETCH FROM BACKEND
   useEffect(() => {
@@ -119,6 +130,28 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
 
   const courses = ['BSIT', 'BSBA', 'BSED', 'BSCRIM'];
   const yearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+  const onlineUrl = `${window.location.origin}/LccLibraryAttendance`;
+
+  const addAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:8000/api/attendance/manual', newAttendance);
+      setShowAddModal(false);
+      setNewAttendance({
+        id_number: '',
+        name: '',
+        email: '',
+        phone: '',
+        course: '',
+        year: '',
+        purpose: '',
+      });
+      fetchAttendance();
+    } catch (err) {
+      console.error(err);
+      alert('Unable to save attendance record');
+    }
+  };
 
   return (
     <Layout user={user} onLogout={onLogout}>
@@ -126,6 +159,25 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
         <div>
           <h2 className="text-[#4B4C58] mb-2">Attendance Records</h2>
           <p className="text-[#9DA4A6]">View and manage library attendance logs.</p>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white p-5 rounded-lg border border-[#9DA4A6]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[#4B4C58] font-semibold">Manual Attendance</h3>
+              <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 bg-[#EF8B2D] text-white px-3 py-2 rounded-lg">
+                <Plus size={16} />
+                Add Student
+              </button>
+            </div>
+            <p className="text-sm text-[#9DA4A6]">Record walk-in student attendance manually.</p>
+          </div>
+          <div className="bg-white p-5 rounded-lg border border-[#9DA4A6] flex items-center justify-between">
+            <div>
+              <h3 className="text-[#4B4C58] font-semibold">Online Attendance via QR</h3>
+              <a href={onlineUrl} target="_blank" rel="noreferrer" className="text-[#1B764C] underline text-sm">Open attendance form</a>
+            </div>
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(onlineUrl)}`} alt="Attendance QR" />
+          </div>
         </div>
 
         {/* FILTERS */}
@@ -196,6 +248,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 text-left">Date & Time</th>
+                <th className="p-3 text-left">ID Number</th>
                 <th className="p-3 text-left">Student Name</th>
                 <th className="p-3 text-left">Course</th>
                 <th className="p-3 text-left">Year</th>
@@ -207,6 +260,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               {filteredData.map(item => (
                 <tr key={item.id} className="border-t">
                   <td className="p-3">{item.created_at}</td>
+                  <td className="p-3">{item.id_number || '-'}</td>
                   <td className="p-3">{item.name}</td>
                   <td className="p-3">{item.course}</td>
                   <td className="p-3">{item.year}</td>
@@ -220,6 +274,32 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
             <p className="text-center p-6 text-gray-500">No records found</p>
           )}
         </div>
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <form onSubmit={addAttendance} className="bg-white p-6 rounded-lg w-full max-w-xl space-y-4">
+              <h3 className="text-lg font-semibold">Add Student Attendance</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <input className="border rounded p-2" placeholder="ID Number" value={newAttendance.id_number} onChange={(e) => setNewAttendance({ ...newAttendance, id_number: e.target.value })} required />
+                <input className="border rounded p-2" placeholder="Student Name" value={newAttendance.name} onChange={(e) => setNewAttendance({ ...newAttendance, name: e.target.value })} required />
+                <input className="border rounded p-2" placeholder="Email Address" value={newAttendance.email} onChange={(e) => setNewAttendance({ ...newAttendance, email: e.target.value })} />
+                <input className="border rounded p-2" placeholder="Contact Number" value={newAttendance.phone} onChange={(e) => setNewAttendance({ ...newAttendance, phone: e.target.value })} />
+                <select className="border rounded p-2" value={newAttendance.course} onChange={(e) => setNewAttendance({ ...newAttendance, course: e.target.value })} required>
+                  <option value="">Select Course</option>
+                  {courses.map((course) => <option key={course}>{course}</option>)}
+                </select>
+                <select className="border rounded p-2" value={newAttendance.year} onChange={(e) => setNewAttendance({ ...newAttendance, year: e.target.value })} required>
+                  <option value="">Select Year Level</option>
+                  {yearLevels.map((year) => <option key={year}>{year}</option>)}
+                </select>
+              </div>
+              <input className="w-full border rounded p-2" placeholder="Purpose" value={newAttendance.purpose} onChange={(e) => setNewAttendance({ ...newAttendance, purpose: e.target.value })} required />
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowAddModal(false)} className="border px-4 py-2 rounded">Cancel</button>
+                <button type="submit" className="bg-[#1B764C] text-white px-4 py-2 rounded">Save</button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </Layout>
   );

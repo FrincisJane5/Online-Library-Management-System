@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../App';
 import { Search, Check } from 'lucide-react';
+import api from '../api/axios';
 
 interface BorrowingReturningProps {
   user: User;
@@ -13,10 +14,14 @@ export default function BorrowingReturning({ user, onLogout }: BorrowingReturnin
   const [borrowSuccess, setBorrowSuccess] = useState(false);
   const [returnSuccess, setReturnSuccess] = useState(false);
   const [fineAmount, setFineAmount] = useState<number | null>(null);
+  const [records, setRecords] = useState<any[]>([]);
 
   // Borrow form
   const [borrowForm, setBorrowForm] = useState({
     studentName: '',
+    idNumber: '',
+    emailAddress: '',
+    contactNumber: '',
     bookTitle: '',
     dateBorrowed: new Date().toISOString().split('T')[0],
     dueDate: ''
@@ -27,30 +32,77 @@ export default function BorrowingReturning({ user, onLogout }: BorrowingReturnin
     transactionId: ''
   });
 
-  const handleBorrow = (e: React.FormEvent) => {
-    e.preventDefault();
-    setBorrowSuccess(true);
-    setTimeout(() => {
-      setBorrowSuccess(false);
-      setBorrowForm({ studentName: '', bookTitle: '', dateBorrowed: new Date().toISOString().split('T')[0], dueDate: '' });
-    }, 3000);
+  useEffect(() => {
+    api.get('/borrowings').then((res) => setRecords(res.data)).catch(console.error);
+  }, []);
+
+  const matchedRecord = useMemo(() => {
+    const term = returnForm.transactionId.trim().toLowerCase();
+    if (!term) return null;
+    return records.find((record: any) =>
+      record.status === 'Borrowed' &&
+      (`${record.id}`.includes(term) ||
+        String(record.student_name || '').toLowerCase().includes(term) ||
+        String(record.id_number || '').toLowerCase().includes(term) ||
+        String(record.book_title || '').toLowerCase().includes(term))
+    ) || null;
+  }, [records, returnForm.transactionId]);
+
+  const refreshRecords = async () => {
+    const res = await api.get('/borrowings');
+    setRecords(res.data);
   };
 
-  const handleReturn = (e: React.FormEvent) => {
+  const handleBorrow = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate overdue check
-    const isOverdue = Math.random() > 0.5;
-    if (isOverdue) {
-      setFineAmount(50);
-    } else {
-      setFineAmount(0);
+    try {
+      await api.post('/borrowings', {
+        student_name: borrowForm.studentName,
+        id_number: borrowForm.idNumber,
+        email: borrowForm.emailAddress || null,
+        contact_number: borrowForm.contactNumber || null,
+        book_title: borrowForm.bookTitle,
+        borrow_date: borrowForm.dateBorrowed,
+        due_date: borrowForm.dueDate,
+      });
+      setBorrowSuccess(true);
+      setTimeout(() => setBorrowSuccess(false), 3000);
+      setBorrowForm({
+        studentName: '',
+        idNumber: '',
+        emailAddress: '',
+        contactNumber: '',
+        bookTitle: '',
+        dateBorrowed: new Date().toISOString().split('T')[0],
+        dueDate: '',
+      });
+      refreshRecords();
+    } catch (error) {
+      console.error(error);
+      alert('Failed to save borrowing record.');
     }
-    setReturnSuccess(true);
-    setTimeout(() => {
-      setReturnSuccess(false);
-      setFineAmount(null);
+  };
+
+  const handleReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!matchedRecord) {
+      alert('No active transaction found.');
+      return;
+    }
+    try {
+      const res = await api.post(`/borrowings/${matchedRecord.id}/return`);
+      setFineAmount(Number(res.data.fine_amount || 0));
+      setReturnSuccess(true);
       setReturnForm({ transactionId: '' });
-    }, 5000);
+      refreshRecords();
+      setTimeout(() => {
+        setReturnSuccess(false);
+        setFineAmount(null);
+      }, 5000);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to process return.');
+    }
   };
 
   return (
@@ -110,6 +162,11 @@ export default function BorrowingReturning({ user, onLogout }: BorrowingReturnin
                           required
                         />
                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <input type="text" value={borrowForm.idNumber} onChange={(e) => setBorrowForm({ ...borrowForm, idNumber: e.target.value })} placeholder="ID Number" className="w-full px-4 py-2 border border-slate-300 rounded-lg" required />
+                      <input type="email" value={borrowForm.emailAddress} onChange={(e) => setBorrowForm({ ...borrowForm, emailAddress: e.target.value })} placeholder="Email Address" className="w-full px-4 py-2 border border-slate-300 rounded-lg" />
+                      <input type="text" value={borrowForm.contactNumber} onChange={(e) => setBorrowForm({ ...borrowForm, contactNumber: e.target.value })} placeholder="Contact Number" className="w-full px-4 py-2 border border-slate-300 rounded-lg" />
                     </div>
                   </div>
                 </div>
@@ -214,25 +271,33 @@ export default function BorrowingReturning({ user, onLogout }: BorrowingReturnin
                   </div>
                 </div>
 
-                {returnForm.transactionId && (
+                {matchedRecord && (
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 space-y-4">
                     <h3 className="text-slate-900">Transaction Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-slate-600">Student Name</p>
-                        <p className="text-slate-900">Maria Santos</p>
+                        <p className="text-slate-900">{matchedRecord.student_name}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Email Address</p>
+                        <p className="text-slate-900">{matchedRecord.email || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-600">Contact Number</p>
+                        <p className="text-slate-900">{matchedRecord.contact_number || '-'}</p>
                       </div>
                       <div>
                         <p className="text-slate-600">Book Title</p>
-                        <p className="text-slate-900">Introduction to Algorithms</p>
+                        <p className="text-slate-900">{matchedRecord.book_title}</p>
                       </div>
                       <div>
                         <p className="text-slate-600">Date Borrowed</p>
-                        <p className="text-slate-900">2025-01-28</p>
+                        <p className="text-slate-900">{matchedRecord.borrow_date}</p>
                       </div>
                       <div>
                         <p className="text-slate-600">Due Date</p>
-                        <p className="text-slate-900">2025-02-04</p>
+                        <p className="text-slate-900">{matchedRecord.due_date}</p>
                       </div>
                       <div>
                         <p className="text-slate-600">Today's Date</p>

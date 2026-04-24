@@ -19,14 +19,16 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'name' => 'required',
+            'id_number' => 'required|string|max:50',
             'email' => 'nullable|email',
             'phone' => 'nullable',
-            'course' => 'required',
-            'year' => 'required',
+            'course' => 'required|in:BSIT,BSBA,BSED,BSCRIM',
+            'year' => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
             'purpose' => 'required'
         ]);
 
         $attendance = Attendance::create([
+            'id_number' => $request->id_number,
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -41,7 +43,10 @@ class AttendanceController extends Controller
             'description' => $request->name . ' logged attendance'
         ]);
 
-        return redirect()->back()->with('success', 'Attendance recorded!');
+        return response()->json([
+            'message' => 'Attendance recorded',
+            'attendance' => $attendance,
+        ], 201);
     }
 
 public function index()
