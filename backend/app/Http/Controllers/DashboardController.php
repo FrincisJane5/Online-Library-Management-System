@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Student;
 use App\Models\Book;
-use App\Models\Borrow;
 use App\Models\ActivityLog;
 use App\Models\BorrowingRecord;
 use Carbon\Carbon;
@@ -34,7 +33,7 @@ class DashboardController extends Controller
         // 📦 Stats
         $totalStudents = Student::count();
         $totalBooks = Book::count();
-        $totalBorrowed = Borrow::where('status', 'borrowed')->count();
+        $totalBorrowed = BorrowingRecord::where('status', 'borrowed')->count();
         $totalFines = BorrowingRecord::where('fine_status', 'Unpaid')->sum('fine_amount');
 
         // 🕒 Recent Activity (latest 5)

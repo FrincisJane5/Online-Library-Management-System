@@ -1,30 +1,24 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import type { User } from './types';
 
 import LoginScreen from './components/LoginScreen';
 import LibrarianDashboard from './components/LibrarianDashboard';
 import StaffDashboard from './components/StaffDashboard';
 import PublicAttendance from './components/PublicAttendance';
-
 import AttendanceManagement from './components/AttendanceManagement';
 import BooksInventory from './components/BooksInventory';
-import BorrowingReturning from './components/BorrowingReturning';
 import OverdueFines from './components/OverdueFines';
 import Notifications from './components/Notifications';
 import UserManagement from './components/UserManagement';
-import Reports from './components/Reports';
-import ActivityLogs from './components/ActivityLogs';
 import Settings from './components/Settings';
-
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
 
-export interface User {
-  id: string;
-  username: string;
-  fullName: string;
-  role: 'admin' | 'staff';
-  status?: 'Active' | 'Deactivated';
-}
+// Feature pages (clean architecture)
+import BorrowingPage from './features/borrowing/BorrowingPage';
+import ReportsPage from './features/reports/ReportsPage';
+import ActivityLogsPage from './features/logs/ActivityLogsPage';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -33,146 +27,67 @@ function App() {
   });
 
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('library_current_user', JSON.stringify(currentUser));
-      return;
-    }
-    localStorage.removeItem('library_current_user');
+    if (currentUser) localStorage.setItem('library_current_user', JSON.stringify(currentUser));
+    else localStorage.removeItem('library_current_user');
   }, [currentUser]);
 
   const handleLogin = (user: User) => setCurrentUser(user);
   const handleLogout = () => setCurrentUser(null);
-  const handleCurrentUserRefresh = (user: User) => setCurrentUser(user);
+
+  // Wrap a feature page (no user/onLogout props needed inside) with Layout
+  const withLayout = (element: React.ReactNode) => (
+    <Layout user={currentUser!} onLogout={handleLogout}>{element}</Layout>
+  );
+
+  const protect = (element: React.ReactNode, role: 'admin' | 'staff') => (
+    <ProtectedRoute user={currentUser} role={role}>{element}</ProtectedRoute>
+  );
+
+  const adminRoute = (path: string, element: React.ReactNode) => (
+    <Route key={path} path={path} element={protect(element, 'admin')} />
+  );
+
+  const staffRoute = (path: string, element: React.ReactNode) => (
+    <Route key={path} path={path} element={protect(element, 'staff')} />
+  );
 
   return (
     <Router>
       <Routes>
-
-        {/* PUBLIC */}
+        {/* Public */}
         <Route path="/LccLibraryAttendance" element={<PublicAttendance />} />
 
-        {/* LOGIN */}
-        <Route 
-          path="/login" 
-          element={
-            currentUser
-              ? <Navigate to={currentUser.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'} />
-              : <LoginScreen onLogin={handleLogin} />
-          } 
-        />
-
-        {/* ADMIN */}
-        <Route path="/admin/dashboard" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <LibrarianDashboard user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
+        {/* Auth */}
+        <Route path="/login" element={
+          currentUser
+            ? <Navigate to={currentUser.role === 'admin' ? '/admin/dashboard' : '/staff/dashboard'} />
+            : <LoginScreen onLogin={handleLogin} />
         } />
 
-        <Route path="/admin/books" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <BooksInventory user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/admin/users" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <UserManagement
-              user={currentUser!}
-              onLogout={handleLogout}
-              onCurrentUserUpdated={handleCurrentUserRefresh}
-            />
-          </ProtectedRoute>
-        } />
+        {/* Admin routes */}
+        {adminRoute('/admin/dashboard',  <LibrarianDashboard user={currentUser!} onLogout={handleLogout} />)}
+        {adminRoute('/admin/books',      <BooksInventory user={currentUser!} onLogout={handleLogout} />)}
+        {adminRoute('/admin/attendance', <AttendanceManagement user={currentUser!} onLogout={handleLogout} />)}
+        {adminRoute('/admin/borrowing',  withLayout(<BorrowingPage />))}
+        {adminRoute('/admin/overdue',    <OverdueFines user={currentUser!} onLogout={handleLogout} />)}
+        {adminRoute('/admin/reports',    withLayout(<ReportsPage />))}
+        {adminRoute('/admin/logs',       withLayout(<ActivityLogsPage />))}
+        {adminRoute('/admin/users',      <UserManagement user={currentUser!} onLogout={handleLogout} onCurrentUserUpdated={setCurrentUser} />)}
+        {adminRoute('/admin/notifications', <Notifications user={currentUser!} onLogout={handleLogout} />)}
+        {adminRoute('/admin/settings',   <Settings user={currentUser!} onLogout={handleLogout} />)}
 
-        <Route path="/admin/notifications" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <Notifications user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
+        {/* Staff routes */}
+        {staffRoute('/staff/dashboard',  <StaffDashboard user={currentUser!} onLogout={handleLogout} />)}
+        {staffRoute('/staff/books',      <BooksInventory user={currentUser!} onLogout={handleLogout} />)}
+        {staffRoute('/staff/attendance', <AttendanceManagement user={currentUser!} onLogout={handleLogout} />)}
+        {staffRoute('/staff/borrowing',  withLayout(<BorrowingPage />))}
+        {staffRoute('/staff/overdue',    <OverdueFines user={currentUser!} onLogout={handleLogout} />)}
+        {staffRoute('/staff/reports',    withLayout(<ReportsPage />))}
+        {staffRoute('/staff/notifications', <Notifications user={currentUser!} onLogout={handleLogout} />)}
 
-        <Route path="/admin/reports" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <Reports user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/admin/settings" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <Settings user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/admin/attendance" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <AttendanceManagement user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/admin/borrowing" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <BorrowingReturning user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/admin/overdue" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <OverdueFines user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/admin/logs" element={
-          <ProtectedRoute user={currentUser} role="admin">
-            <ActivityLogs user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        {/* STAFF */}
-        <Route path="/staff/dashboard" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <StaffDashboard user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/books" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <BooksInventory user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/attendance" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <AttendanceManagement user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/borrowing" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <BorrowingReturning user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/overdue" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <OverdueFines user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/notifications" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <Notifications user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/staff/reports" element={
-          <ProtectedRoute user={currentUser} role="staff">
-            <Reports user={currentUser!} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-
-        {/* DEFAULT */}
+        {/* Fallback */}
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/login" />} />
-
       </Routes>
     </Router>
   );

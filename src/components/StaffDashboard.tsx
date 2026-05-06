@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from '../api/axios';
 import Layout from './Layout';
-import { User } from '../App';
-import { BookOpen, RefreshCcw, Clock, CheckCircle } from 'lucide-react';
+import { User } from '../types';
+import { BookOpen, RefreshCcw, Users, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 interface StaffDashboardProps {
   user: User;
@@ -12,29 +13,40 @@ interface StaffDashboardProps {
 
 export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) {
   const [dashboard, setDashboard] = useState<any>(null);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Assuming a specific endpoint for staff metrics
-    axios.get("http://localhost:8000/api/staff/dashboard")
+    api.get('/dashboard')
       .then(res => setDashboard(res.data))
-      .catch(err => console.error(err));
+      .catch(() => setError('Could not load dashboard. Make sure the backend is running.'));
   }, []);
+
+  if (error) {
+    return (
+      <Layout user={user} onLogout={onLogout}>
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div>
+      </Layout>
+    );
+  }
 
   if (!dashboard) {
     return (
       <Layout user={user} onLogout={onLogout}>
         <div className="p-6 flex items-center justify-center h-64">
-           <p className="text-[#9DA4A6] animate-pulse">Loading workspace...</p>
+          <p className="text-[#9DA4A6] animate-pulse">Loading workspace...</p>
         </div>
       </Layout>
     );
   }
 
-  // Focus on operational data (e.g., transactions handled)
-  const transactionData = dashboard.daily_stats.map((item: any) => ({
+  const chartData = dashboard.attendance_chart.map((item: any) => ({
     day: item.date,
-    processed: item.total_actions
+    visits: item.total,
   }));
+
+  const stats = dashboard.stats;
+  const recentActivity = dashboard.recent_activity;
 
   return (
     <Layout user={user} onLogout={onLogout}>
@@ -42,86 +54,83 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
 
         {/* Header */}
         <div>
-          <h2 className="text-[#4B4C58] text-2xl font-bold mb-1">Staff Terminal</h2>
-          <p className="text-[#9DA4A6]">
-            Welcome, {user.fullName}. You are logged in as Library Staff.
-          </p>
+          <h2 className="text-[#4B4C58] text-2xl font-bold mb-1">Staff Dashboard</h2>
+          <p className="text-[#9DA4A6]">Welcome, {user.fullName}. Here's today's library overview.</p>
         </div>
 
-        {/* Task-Oriented KPI Cards */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-          {/* Pending Approvals */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#EF8B2D] hover:shadow-md transition">
+          <button onClick={() => navigate('/staff/books')}
+            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#1B764C] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
-               <p className="text-[#9DA4A6] font-medium">Pending Requests</p>
-               <Clock className="w-5 h-5 text-[#EF8B2D]" />
+              <p className="text-[#9DA4A6] font-medium">Total Books</p>
+              <BookOpen className="w-5 h-5 text-[#1B764C]" />
             </div>
-            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.pending_requests}</p>
-          </div>
+            <p className="text-[#4B4C58] text-2xl font-bold">{stats.books}</p>
+          </button>
 
-          {/* Books to Return Today */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#1B764C] hover:shadow-md transition">
+          <button onClick={() => navigate('/staff/borrowing')}
+            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#EF8B2D] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
-               <p className="text-[#9DA4A6] font-medium">Returns Due Today</p>
-               <RefreshCcw className="w-5 h-5 text-[#1B764C]" />
+              <p className="text-[#9DA4A6] font-medium">Books Borrowed</p>
+              <RefreshCcw className="w-5 h-5 text-[#EF8B2D]" />
             </div>
-            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.due_today}</p>
-          </div>
+            <p className="text-[#4B4C58] text-2xl font-bold">{stats.borrowed}</p>
+          </button>
 
-          {/* Active Borrows */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#4B4C58] hover:shadow-md transition">
+          <button onClick={() => navigate('/staff/attendance')}
+            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#4B4C58] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
-               <p className="text-[#9DA4A6] font-medium">Books Out</p>
-               <BookOpen className="w-5 h-5 text-[#4B4C58]" />
+              <p className="text-[#9DA4A6] font-medium">Students</p>
+              <Users className="w-5 h-5 text-[#4B4C58]" />
             </div>
-            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.active_loans}</p>
-          </div>
+            <p className="text-[#4B4C58] text-2xl font-bold">{stats.students}</p>
+          </button>
 
-          {/* Completed Today */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#79C39F] hover:shadow-md transition">
+          <button onClick={() => navigate('/staff/overdue')}
+            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#D72A24] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
-               <p className="text-[#9DA4A6] font-medium">Processed Today</p>
-               <CheckCircle className="w-5 h-5 text-[#79C39F]" />
+              <p className="text-[#9DA4A6] font-medium">Unpaid Fines</p>
+              <Activity className="w-5 h-5 text-[#D72A24]" />
             </div>
-            <p className="text-[#4B4C58] text-2xl font-bold">{dashboard.stats.completed_today}</p>
-          </div>
+            <p className="text-[#4B4C58] text-2xl font-bold">₱{Number(stats.fines ?? 0).toFixed(2)}</p>
+          </button>
 
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* 📊 Staff Activity Chart */}
+          {/* Chart */}
           <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]/30">
-            <h3 className="text-[#4B4C58] font-semibold mb-4">Transaction Volume (Last 7 Days)</h3>
+            <h3 className="text-[#4B4C58] font-semibold mb-4">Library Visits (Mon–Sat)</h3>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={transactionData}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{fill: '#f3f4f6'}} />
-                <Bar dataKey="processed" fill="#1B764C" radius={[4, 4, 0, 0]} />
+                <Tooltip cursor={{ fill: '#f3f4f6' }} />
+                <Bar dataKey="visits" fill="#1B764C" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* 🕒 My Recent Actions */}
+          {/* Recent Activity */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]/30">
-            <h3 className="text-[#4B4C58] font-semibold mb-4">Your Recent Actions</h3>
+            <h3 className="text-[#4B4C58] font-semibold mb-4">Recent Activity</h3>
             <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
-              {dashboard.my_activity.length === 0 ? (
-                <p className="text-[#9DA4A6] text-center py-10">No recent actions</p>
-              ) : (
-                dashboard.my_activity.map((activity: any, index: number) => (
-                  <div key={index} className="flex gap-3 items-start">
-                    <div className="mt-1 w-2 h-2 rounded-full bg-[#1B764C] shrink-0" />
-                    <div>
-                      <p className="text-sm text-[#4B4C58] font-medium leading-tight">{activity.action}</p>
-                      <p className="text-xs text-[#9DA4A6]">{activity.time_ago}</p>
-                    </div>
+              {recentActivity.length === 0 ? (
+                <p className="text-[#9DA4A6] text-center py-10">No recent activity</p>
+              ) : recentActivity.map((a: any, i: number) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <div className="mt-1.5 w-2 h-2 rounded-full bg-[#1B764C] shrink-0" />
+                  <div>
+                    <p className="text-sm text-[#4B4C58] font-medium leading-tight">{a.action}</p>
+                    <p className="text-xs text-[#9DA4A6]">{a.description}</p>
+                    <p className="text-xs text-[#9DA4A6]">{a.created_at}</p>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Layout from './Layout';
-import { User } from '../App';
+import { User } from '../types';
 import { Plus, AlertCircle, X } from 'lucide-react';
 import api from '../api/axios';
 
@@ -25,6 +25,8 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     username: '',
@@ -32,12 +34,16 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
   });
 
   const fetchUsers = async () => {
+    setFetchError(null);
     try {
       const res = await api.get('/users');
       setStaffUsers(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load users', error);
-      alert('Unable to fetch users. Please check backend connection.');
+      const msg = error.code === 'ERR_NETWORK'
+        ? 'Cannot reach the backend. Make sure the Laravel server is running on http://127.0.0.1:8000.'
+        : (error.response?.data?.message ?? 'Unable to fetch users. Please check backend connection.');
+      setFetchError(msg);
     }
   };
 
@@ -53,6 +59,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
   const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setFormError(null);
     try {
       if (editingUser) {
         const response = await api.put(`/users/${editingUser.id}`, {
@@ -78,7 +85,8 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
       resetForm();
       await fetchUsers();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to save staff account.');
+      const msg = err.response?.data?.message || 'Failed to save staff account.';
+      setFormError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -134,6 +142,18 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
             <p className="text-amber-700">Only the librarian (admin) can create or deactivate staff accounts. There is no public sign-up.</p>
           </div>
         </div>
+
+        {/* Fetch Error Banner */}
+        {fetchError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 text-red-700">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium">Failed to load users</p>
+              <p className="text-sm">{fetchError}</p>
+            </div>
+            <button onClick={fetchUsers} className="underline text-sm">Retry</button>
+          </div>
+        )}
 
         {/* Staff Users Table */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -218,6 +238,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
                   onClick={() => {
                     setShowAddModal(false);
                     resetForm();
+                    setFormError(null);
                   }}
                   className="p-1 hover:bg-slate-100 rounded"
                 >
@@ -278,12 +299,19 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
                   </select>
                   <p className="text-slate-500 mt-1">Only staff accounts can be created via UI</p>
                 </div>
+                {formError && (
+                  <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{formError}</span>
+                  </div>
+                )}
                 <div className="flex gap-3 justify-end pt-4">
                   <button
                     type="button"
                     onClick={() => {
                       setShowAddModal(false);
                       resetForm();
+                      setFormError(null);
                     }}
                     className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors"
                   >

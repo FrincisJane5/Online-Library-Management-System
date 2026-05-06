@@ -12,12 +12,18 @@ class BorrowingRecord extends Model
         'email',
         'contact_number',
         'book_title',
+        'call_number',
         'borrow_date',
         'due_date',
         'return_date',
-        'status',
+        'status',   // borrowed | returned
+        'action',   // damaged | lost (special cases only)
         'fine_amount',
         'fine_status',
         'last_notification_at',
+    ];
+
+    protected $casts = [
+        'fine_amount' => 'float',
     ];
 }

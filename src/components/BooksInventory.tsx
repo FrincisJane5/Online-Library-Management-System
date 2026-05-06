@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from './Layout';
-import { User } from '../App';
+import { User } from '../types';
 import { Search, Plus, Edit, Trash2, X } from 'lucide-react';
 import api from '../api/axios';
 
@@ -30,6 +30,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
   const [statusFilter, setStatusFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     callNumber: '', 
@@ -80,6 +81,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
 
   const handleSaveBook = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     try {
         const payload = {
           call_number: formData.callNumber,
@@ -96,14 +98,16 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
           : await api.post('/books', payload);
 
         if (response.status === 201 || response.status === 200) {
-            alert(editingBook ? "Book Updated Successfully!" : "Book Saved Successfully!");
             setShowAddModal(false);
             resetForm();
             fetchBooks();
         }
     } catch (err: any) {
         console.error("Backend Error:", err.response?.data);
-        alert(err.response?.data?.message || "Check your XAMPP/MySQL connection.");
+        const msg = err.response?.data?.message
+          || (err.code === 'ERR_NETWORK' ? 'Cannot reach the backend. Make sure the Laravel server is running.' : null)
+          || 'Failed to save book. Please try again.';
+        setFormError(msg);
     }
   };
 
@@ -259,6 +263,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                   onClick={() => {
                     setShowAddModal(false);
                     resetForm();
+                    setFormError(null);
                   }}
                 />
               </div>
@@ -331,12 +336,19 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                     <option value="Lost">Lost</option>
                   </select>
                 </div>
+                {formError && (
+                  <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    <X className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{formError}</span>
+                  </div>
+                )}
                 <div className="flex gap-3 pt-4 border-t">
                   <button 
                     type="button" 
                     onClick={() => {
                       setShowAddModal(false);
                       resetForm();
+                      setFormError(null);
                     }}
                     className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
                   >

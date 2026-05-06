@@ -15,12 +15,14 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('contact_number')->nullable();
             $table->string('book_title');
+            $table->string('call_number')->nullable();
             $table->date('borrow_date');
             $table->date('due_date');
             $table->date('return_date')->nullable();
-            $table->string('status')->default('Borrowed');
+            $table->string('status')->default('borrowed'); // borrowed | returned
+            $table->string('action')->nullable(); // damaged | lost
             $table->decimal('fine_amount', 10, 2)->default(0);
-            $table->string('fine_status')->default('Unpaid');
+            $table->string('fine_status')->default('unpaid'); // paid | unpaid
             $table->timestamp('last_notification_at')->nullable();
             $table->timestamps();
         });

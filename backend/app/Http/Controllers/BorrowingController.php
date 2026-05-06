@@ -2,120 +2,117 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OverdueReminderMail;
 use App\Models\ActivityLog;
 use App\Models\BorrowingRecord;
-use App\Models\LibrarySetting;
+use App\Services\BorrowingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 
 class BorrowingController extends Controller
 {
+    public function __construct(private BorrowingService $service) {}
+
     public function index()
     {
-        return response()->json(BorrowingRecord::query()->latest()->get());
+        return response()->json(BorrowingRecord::latest()->get());
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'student_name' => 'required|string|max:255',
-            'id_number' => 'required|string|max:50',
-            'email' => 'nullable|email',
+        $data = $request->validate([
+            'student_name'   => 'required|string|max:255',
+            'id_number'      => 'required|string|max:50',
+            'email'          => 'nullable|email',
             'contact_number' => 'nullable|string|max:50',
-            'book_title' => 'required|string|max:255',
-            'borrow_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:borrow_date',
+            'book_title'     => 'required|string|max:255',
+            'call_number'    => 'nullable|string|max:100',
+            'borrow_date'    => 'required|date',
+            'due_date'       => 'required|date|after_or_equal:borrow_date',
         ]);
 
-        $record = BorrowingRecord::create([
-            ...$validated,
-            'status' => 'Borrowed',
-            'fine_amount' => 0,
-            'fine_status' => 'Unpaid',
-        ]);
+        if (!$this->service->checkAttendance($data['id_number'])) {
+            return response()->json([
+                'message' => 'Borrowing not allowed. Student has no attendance record for today.',
+                'error'   => 'no_attendance',
+            ], 422);
+        }
 
-        ActivityLog::create([
-            'action' => 'Borrowing',
-            'description' => $record->student_name . ' borrowed "' . $record->book_title . '"',
-        ]);
+        $record = $this->service->borrow(
+            $data,
+            $request->header('X-User-Name', 'Staff'),
+            $request->header('X-User-Role', 'staff')
+        );
 
         return response()->json($record, 201);
     }
 
-    public function returnBook(BorrowingRecord $borrowing)
+    public function returnBook(Request $request, BorrowingRecord $borrowing)
     {
-        if ($borrowing->status === 'Returned') {
-            return response()->json($borrowing);
-        }
+        $record = $this->service->return(
+            $borrowing,
+            $request->input('action'),
+            $request->header('X-User-Name', 'Staff'),
+            $request->header('X-User-Role', 'staff')
+        );
 
-        $settings = LibrarySetting::query()->first();
-        $fineRate = (float) ($settings?->fine_rate ?? 5);
-        $due = Carbon::parse($borrowing->due_date);
-        $today = Carbon::today();
-        $daysOverdue = max(0, $due->diffInDays($today, false));
-        $fineAmount = $daysOverdue * $fineRate;
-
-        $borrowing->update([
-            'status' => 'Returned',
-            'return_date' => $today->toDateString(),
-            'fine_amount' => $fineAmount,
-            'fine_status' => $fineAmount > 0 ? 'Unpaid' : 'Paid',
-        ]);
-
-        ActivityLog::create([
-            'action' => 'Returning',
-            'description' => $borrowing->student_name . ' returned "' . $borrowing->book_title . '"',
-        ]);
-
-        return response()->json($borrowing->fresh());
+        return response()->json($record);
     }
 
     public function fines()
     {
-        $records = BorrowingRecord::query()->latest()->get()->map(function (BorrowingRecord $record) {
-            $due = Carbon::parse($record->due_date);
-            $daysOverdue = max(0, $due->diffInDays(Carbon::today(), false));
-            return [
-                'id' => $record->id,
-                'studentName' => $record->student_name,
-                'bookTitle' => $record->book_title,
-                'dateBorrowed' => $record->borrow_date,
-                'dueDate' => $record->due_date,
-                'daysOverdue' => $daysOverdue,
-                'fineAmount' => (float) $record->fine_amount,
-                'status' => $record->fine_status,
-                'lastNotification' => $record->last_notification_at ? Carbon::parse($record->last_notification_at)->format('Y-m-d H:i') : 'Never',
-            ];
-        })->filter(function (array $record) {
-            return $record['daysOverdue'] > 0 || $record['fineAmount'] > 0;
-        })->values();
+        $records = BorrowingRecord::latest()->get()
+            ->map(fn($r) => [
+                'id'               => $r->id,
+                'studentName'      => $r->student_name,
+                'studentEmail'     => $r->email,
+                'bookTitle'        => $r->book_title,
+                'dateBorrowed'     => $r->borrow_date,
+                'dueDate'          => $r->due_date,
+                'daysOverdue'      => max(0, Carbon::parse($r->due_date)->diffInDays(Carbon::today(), false)),
+                'fineAmount'       => (float) $r->fine_amount,
+                'status'           => $r->fine_status,
+                'action'           => $r->action,
+                'lastNotification' => $r->last_notification_at
+                    ? Carbon::parse($r->last_notification_at)->format('Y-m-d H:i')
+                    : 'Never',
+            ])
+            ->filter(fn($r) => $r['daysOverdue'] > 0 || $r['fineAmount'] > 0)
+            ->values();
 
         return response()->json($records);
     }
 
-    public function markPaid(BorrowingRecord $borrowing)
+    public function markPaid(Request $request, BorrowingRecord $borrowing)
     {
-        $borrowing->update(['fine_status' => 'Paid']);
+        $borrowing->update(['fine_status' => 'paid']);
         ActivityLog::create([
-            'action' => 'Fines',
-            'description' => 'Fine marked as paid for ' . $borrowing->student_name,
+            'action'      => 'Fine',
+            'description' => "Fine marked as paid for {$borrowing->student_name}",
+            'user_name'   => $request->header('X-User-Name', 'Staff'),
+            'user_role'   => $request->header('X-User-Role', 'staff'),
         ]);
         return response()->json(['message' => 'Fine marked as paid']);
     }
 
-    public function sendReminders()
+    public function sendReminder(BorrowingRecord $borrowing)
     {
-        $now = now();
-        BorrowingRecord::query()
-            ->where('fine_status', 'Unpaid')
-            ->where('fine_amount', '>', 0)
-            ->update(['last_notification_at' => $now]);
+        if ($borrowing->email) {
+            Mail::to($borrowing->email)->send(new OverdueReminderMail($borrowing));
+        }
+
+        $borrowing->update(['last_notification_at' => now()]);
 
         ActivityLog::create([
-            'action' => 'Fines',
-            'description' => 'Overdue reminders sent',
+            'action'      => 'Notification',
+            'description' => "Overdue reminder sent to {$borrowing->student_name} for \"{$borrowing->book_title}\"",
         ]);
 
-        return response()->json(['message' => 'Reminders sent']);
+        return response()->json([
+            'message' => $borrowing->email
+                ? "Reminder sent to {$borrowing->email}"
+                : 'Notification logged (no email on record)',
+        ]);
     }
 }

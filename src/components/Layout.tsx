@@ -14,7 +14,7 @@ import {
   X,
   LogOut
 } from 'lucide-react';
-import { User } from '../App';
+import { User } from '../types';
 import logoImage from '../assets/logo.png';
 
 interface LayoutProps {
@@ -88,7 +88,7 @@ export default function Layout({ user, onLogout, children }: LayoutProps) {
       <div className="flex">
         {/* Sidebar */}
         <aside className={`
-          fixed lg:sticky top-0 left-0 z-30 h-screen lg:h-[calc(100vh-73px)] w-64 bg-[#1B764C] border-r border-[#016937]
+          fixed lg:sticky top-[73px] left-0 z-30 h-[calc(100vh-73px)] w-64 bg-[#1B764C] border-r border-[#016937]
           transition-transform duration-300 lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
@@ -133,7 +133,7 @@ export default function Layout({ user, onLogout, children }: LayoutProps) {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 min-h-[calc(100vh-73px)] bg-[#F5F6F5] p-4 lg:p-6">
           {children}
         </main>
       </div>

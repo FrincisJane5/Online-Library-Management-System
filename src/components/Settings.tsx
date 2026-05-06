@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Layout from './Layout';
-import { User } from '../App';
+import { User } from '../types';
 import { Save, Info } from 'lucide-react';
 import api from '../api/axios';
 

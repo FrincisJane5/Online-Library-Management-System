@@ -38,13 +38,13 @@ class UserManagementController extends Controller
         ]);
 
         $user = User::create([
+            'name'     => $validated['full_name'],
             'full_name' => $validated['full_name'],
-            'name' => $validated['full_name'],
             'username' => $validated['username'],
-            'email' => $validated['username'] . '@local.library',
+            'email'    => $validated['username'] . '@local.library',
             'password' => $validated['password'],
-            'role' => $validated['role'],
-            'status' => 'Active',
+            'role'     => $validated['role'],
+            'status'   => 'Active',
         ]);
 
         return response()->json([
@@ -66,9 +66,9 @@ class UserManagementController extends Controller
         ]);
 
         $user->update([
+            'name'      => $validated['full_name'],
             'full_name' => $validated['full_name'],
-            'name' => $validated['full_name'],
-            'username' => $validated['username'],
+            'username'  => $validated['username'],
         ]);
 
         return response()->json([

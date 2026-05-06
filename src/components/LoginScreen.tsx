@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { User } from '../App';
+import { User } from '../types';
 import api from '../api/axios';
-
+import logoImage from '../assets/logo.png';
 interface LoginScreenProps {
   onLogin: (user: User) => void;
 }
@@ -31,11 +31,22 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen  flex items-center justify-center p-4 bg-gradient-to-r from-[#a6f5e3] to-[#98FF98]">
       <div className="w-full max-w-md">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-[#4B4C58] mb-2">Library Management System</h1>
-          <p className="text-[#9DA4A6]">Legacy College of Compostela</p>
-        </div>
+        {/* Header */}
+<div className="flex flex-col items-center text-center mb-8">
+  <img 
+    src={logoImage} 
+    alt="Legacy College Logo" 
+    className="w-32 h-32 object-contain mb-4" 
+  />
+  <h1 className="text-[#4B4C58] text-2xl font-bold mb-1">
+    Library Management System
+  </h1>
+  <p className="text-[#9DA4A6] text-sm">
+    Legacy College of Compostela
+  </p>
+</div>
 
+      
         {/* Login Card */}
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-[#4B4C58] mb-6 text-center">Sign In</h2>

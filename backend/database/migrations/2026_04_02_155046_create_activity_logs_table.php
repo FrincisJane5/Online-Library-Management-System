@@ -15,6 +15,8 @@ return new class extends Migration
     $table->id();
     $table->string('action');
     $table->string('description');
+    $table->string('user_name')->nullable();
+    $table->string('user_role')->nullable();
     $table->timestamps();
 });
     }

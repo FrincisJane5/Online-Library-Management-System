@@ -12,15 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('attendances', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('email')->nullable();
-    $table->string('phone')->nullable();
-    $table->string('course');
-    $table->string('year');
-    $table->string('purpose');
-    $table->timestamps();
-});
+            $table->id();
+            $table->string('id_number');
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('course')->nullable();
+            $table->string('year')->nullable();
+            $table->string('purpose')->nullable();
+            $table->timestamps();
+        });
     }
 
     /**

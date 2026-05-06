@@ -10,18 +10,18 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::create('students', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('email')->nullable();
-        $table->string('phone')->nullable();
-        $table->string('course');
-        $table->string('year');
-        $table->string('purpose');
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('students', function (Blueprint $table) {
+            $table->id();
+            $table->string('student_id_number')->unique();
+            $table->string('name');
+            $table->string('email')->unique()->nullable();
+            $table->string('course')->nullable();
+            $table->string('year_level')->nullable();
+            $table->string('contact_number')->nullable();
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

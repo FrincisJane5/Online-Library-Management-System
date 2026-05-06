@@ -19,18 +19,11 @@ class Book extends Model
         'status',
     ];
 
-    // Include frontend-friendly aliases in JSON responses.
-    protected $appends = ['callNumber', 'totalCopies'];
-
-    public function getCallNumberAttribute(): string
-    {
-        return $this->attributes['call_number'] ?? 'N/A';
-    }
-
-    public function getTotalCopiesAttribute(): int
-    {
-        return (int) ($this->attributes['total'] ?? 0);
-    }
-
-    protected $hidden = ['call_number', 'total'];
+    protected $casts = [
+        'total'     => 'integer',
+        'available' => 'integer',
+        'borrowed'  => 'integer',
+        'damaged'   => 'integer',
+        'lost'      => 'integer',
+    ];
 }

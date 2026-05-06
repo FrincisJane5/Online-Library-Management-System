@@ -8,15 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('attendances', function (Blueprint $table) {
-            $table->string('id_number')->nullable()->after('id');
-        });
+        // id_number is now included in the base attendances migration
+        if (!Schema::hasColumn('attendances', 'id_number')) {
+            Schema::table('attendances', function (Blueprint $table) {
+                $table->string('id_number')->nullable()->after('id');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('attendances', function (Blueprint $table) {
-            $table->dropColumn('id_number');
-        });
+        // no-op: managed by base migration
     }
 };

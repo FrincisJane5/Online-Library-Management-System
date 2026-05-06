@@ -2,55 +2,79 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Attendance;
 use App\Models\ActivityLog;
+use App\Models\Attendance;
+use App\Models\Student;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
-    // Show form (QR page)
-    public function scanForm()
+    public function index()
     {
-        return view('attendance'); // blade file
+        return response()->json(
+            Attendance::latest()->get()->map(fn($a) => [
+                'id'         => $a->id,
+                'id_number'  => $a->id_number,
+                'name'       => $a->name,
+                'email'      => $a->email,
+                'phone'      => $a->phone,
+                'course'     => $a->course,
+                'year'       => $a->year,
+                'purpose'    => $a->purpose,
+                'created_at' => $a->created_at?->format('Y-m-d H:i'),
+            ])
+        );
     }
 
-    // Save attendance
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required',
+        $data = $request->validate([
             'id_number' => 'required|string|max:50',
-            'email' => 'nullable|email',
-            'phone' => 'nullable',
-            'course' => 'required|in:BSIT,BSBA,BSED,BSCRIM',
-            'year' => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
-            'purpose' => 'required'
+            'name'      => 'required|string|max:255',
+            'email'     => 'nullable|email|max:255',
+            'phone'     => 'required|string|max:50',
+            'course'    => 'required|in:BSIT,BSBA,BSED,BSCRIM',
+            'year'      => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
+            'purpose'   => 'required|string|max:255',
         ]);
 
-        $attendance = Attendance::create([
-            'id_number' => $request->id_number,
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'course' => $request->course,
-            'year' => $request->year,
-            'purpose' => $request->purpose,
-        ]);
+        return DB::transaction(function () use ($data) {
+            // Attempt to upsert student record — non-fatal if students table isn't migrated yet
+            try {
+                Student::firstOrCreate(
+                    ['contact_number' => $data['phone']],
+                    [
+                        'student_id_number' => $data['id_number'],
+                        'name'              => $data['name'],
+                        'email'             => $data['email'] ?? null,
+                        'course'            => $data['course'],
+                        'year_level'        => $data['year'],
+                    ]
+                );
+            } catch (\Throwable $e) {
+                // Students table not yet migrated — skip silently
+            }
 
-        // 🔥 LOG ACTIVITY
-        ActivityLog::create([
-            'action' => 'Attendance',
-            'description' => $request->name . ' logged attendance'
-        ]);
+            $attendance = Attendance::create([
+                'id_number' => $data['id_number'],
+                'name'      => $data['name'],
+                'email'     => $data['email'] ?? null,
+                'phone'     => $data['phone'],
+                'course'    => $data['course'],
+                'year'      => $data['year'],
+                'purpose'   => $data['purpose'],
+            ]);
 
-        return response()->json([
-            'message' => 'Attendance recorded',
-            'attendance' => $attendance,
-        ], 201);
+            ActivityLog::create([
+                'action'      => 'Attendance',
+                'description' => "{$data['name']} logged attendance",
+            ]);
+
+            return response()->json([
+                'message'    => 'Attendance recorded',
+                'attendance' => $attendance,
+            ], 201);
+        });
     }
-
-public function index()
-{
-    return \App\Models\Attendance::latest()->get();
-}
 }

@@ -16,16 +16,13 @@ return new class extends Migration
         $table->string('call_number')->unique();
         $table->string('title');
         $table->string('author');
-        $table->string('category')->nullable();
-
-        $table->integer('total')->default(0);
-        $table->integer('available')->default(0);
+        $table->string('category');
+        $table->integer('total')->default(1);
+        $table->integer('available')->default(1);
         $table->integer('borrowed')->default(0);
         $table->integer('damaged')->default(0);
         $table->integer('lost')->default(0);
-
-        $table->string('status')->default('Available'); // Available / Low Stock / Out of Stock
-
+        $table->string('status')->default('available'); // available | borrowed | returned
         $table->timestamps();
     });
 }
