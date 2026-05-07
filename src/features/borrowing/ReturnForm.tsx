@@ -50,7 +50,6 @@ export default function ReturnForm({ records, onSuccess, onError }: Props) {
     ['Student Name', matched.student_name],
     ['ID Number', matched.id_number],
     ['Book Title', matched.book_title],
-    ['Call Number', matched.call_number ?? '-'],
     ['Date Borrowed', matched.borrow_date],
     ['Due Date', matched.due_date],
     ["Today's Date", today()],

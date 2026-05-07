@@ -44,7 +44,6 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         email:          form.email || undefined,
         contact_number: form.contactNumber || undefined,
         book_title:     selectedBook.title,
-        call_number:    selectedBook.call_number,
         borrow_date:    form.dateBorrowed,
         due_date:       form.dueDate,
       });
@@ -82,9 +81,11 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <input {...field('idNumber')} placeholder="ID Number" required
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-            <input {...field('email')} type="email" placeholder="Email (optional)"
+            <input {...field('email')} type="email" placeholder="Gmail Address" required
+              pattern="^[a-zA-Z0-9._%+\-]+@gmail\.com$"
+              title="Must be a Gmail address (e.g. name@gmail.com)"
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-            <input {...field('contactNumber')} placeholder="Contact (optional)"
+            <input {...field('contactNumber')} placeholder="Contact Number" required
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
           </div>
         </div>
@@ -109,17 +110,16 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
               <button key={book.id} type="button" onClick={() => selectBook(book)}
                 className="w-full text-left px-4 py-3 hover:bg-slate-50">
                 <p className="text-slate-900 font-medium">{book.title}</p>
-                <p className="text-slate-500 text-sm">{book.call_number} · {book.author} · {book.available} available</p>
+                <p className="text-slate-500 text-sm">{book.author} · {book.available} available</p>
               </button>
             ))}
           </div>
         )}
 
         {selectedBook && (
-          <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             <div><p className="text-slate-500">Status</p><p className="text-green-700 font-medium">Available</p></div>
             <div><p className="text-slate-500">Copies</p><p className="text-slate-900">{selectedBook.available}</p></div>
-            <div><p className="text-slate-500">Call No.</p><p className="text-slate-900">{selectedBook.call_number}</p></div>
             <div><p className="text-slate-500">Author</p><p className="text-slate-900">{selectedBook.author}</p></div>
           </div>
         )}

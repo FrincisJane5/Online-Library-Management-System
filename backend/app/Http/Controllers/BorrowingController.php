@@ -24,10 +24,9 @@ class BorrowingController extends Controller
         $data = $request->validate([
             'student_name'   => 'required|string|max:255',
             'id_number'      => 'required|string|max:50',
-            'email'          => 'nullable|email',
-            'contact_number' => 'nullable|string|max:50',
+            'email'          => 'required|email|regex:/^[a-zA-Z0-9._%+\-]+@gmail\.com$/i',
+            'contact_number' => 'required|string|max:50',
             'book_title'     => 'required|string|max:255',
-            'call_number'    => 'nullable|string|max:100',
             'borrow_date'    => 'required|date',
             'due_date'       => 'required|date|after_or_equal:borrow_date',
         ]);

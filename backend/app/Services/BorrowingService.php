@@ -22,12 +22,12 @@ class BorrowingService
     public function borrow(array $data, string $userName = 'Staff', string $userRole = 'staff'): BorrowingRecord
     {
         return DB::transaction(function () use ($data, $userName, $userRole) {
-            if (!empty($data['call_number'])) {
-                $book = Book::where('call_number', $data['call_number'])->lockForUpdate()->firstOrFail();
+            $book = Book::where('title', $data['book_title'])->lockForUpdate()->first();
+            if ($book) {
                 abort_if($book->available <= 0, 422, 'Book is not available.');
                 $book->decrement('available');
                 $book->increment('borrowed');
-                if ($book->available <= 0) $book->update(['status' => 'borrowed']);
+                if ($book->available <= 0) $book->update(['status' => 'Borrowed']);
             }
 
             $record = BorrowingRecord::create([
@@ -69,15 +69,15 @@ class BorrowingService
                 'fine_status' => $fine > 0 ? 'unpaid' : 'paid',
             ]);
 
-            if ($record->call_number) {
-                $book = Book::where('call_number', $record->call_number)->first();
+            if ($record->book_title) {
+                $book = Book::where('title', $record->book_title)->first();
                 if ($book) {
                     $book->decrement('borrowed');
                     match ($action) {
                         'damaged' => $book->increment('damaged'),
                         'lost'    => $book->increment('lost'),
                         default   => tap($book->increment('available'), fn() =>
-                            $book->available > 0 && $book->update(['status' => 'available'])
+                            $book->available > 0 && $book->update(['status' => 'Available'])
                         ),
                     };
                 }

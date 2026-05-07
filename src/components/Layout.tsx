@@ -85,58 +85,49 @@ export default function Layout({ user, onLogout, children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`
-          fixed lg:sticky top-[73px] left-0 z-30 h-[calc(100vh-73px)] w-64 bg-[#1B764C] border-r border-[#016937]
-          transition-transform duration-300 lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <nav className="p-4 space-y-1 overflow-y-auto h-full">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-[#016937] text-white' 
-                      : 'text-white/90 hover:bg-[#016937]/50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-            
-            <button
-              onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:bg-[#D72A24] transition-colors mt-4"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
-          </nav>
-        </aside>
+      {/* Sidebar — fixed so it works regardless of page nesting */}
+      <aside className={`
+        fixed top-[73px] left-0 z-30 h-[calc(100vh-73px)] w-64 bg-[#1B764C] border-r border-[#016937]
+        transition-transform duration-300 lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <nav className="p-4 space-y-1 overflow-y-auto h-full">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive ? 'bg-[#016937] text-white' : 'text-white/90 hover:bg-[#016937]/50'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/90 hover:bg-[#D72A24] transition-colors mt-4"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
+        </nav>
+      </aside>
 
-        {/* Overlay for mobile */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
 
-        {/* Main Content */}
-        <main className="flex-1 min-h-[calc(100vh-73px)] bg-[#F5F6F5] p-4 lg:p-6">
-          {children}
-        </main>
-      </div>
+      {/* Main Content — offset by sidebar width on desktop */}
+      <main className="lg:ml-64 min-h-[calc(100vh-73px)] bg-[#F5F6F5] p-4 lg:p-6">
+        {children}
+      </main>
     </div>
   );
 }

@@ -65,6 +65,7 @@ class UserManagementController extends Controller
             'username' => 'required|string|max:100|unique:users,username,' . $user->id,
         ]);
 
+        // Never touch the role — preserve whatever role the user already has
         $user->update([
             'name'      => $validated['full_name'],
             'full_name' => $validated['full_name'],
@@ -72,9 +73,10 @@ class UserManagementController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Staff account updated',
+            'message'  => 'Account updated',
             'fullName' => $user->full_name,
             'username' => $user->username,
+            'role'     => ucfirst($user->role),
         ]);
     }
 

@@ -69,6 +69,8 @@ class AttendanceController extends Controller
             ActivityLog::create([
                 'action'      => 'Attendance',
                 'description' => "{$data['name']} logged attendance",
+                'user_name'   => $data['name'],
+                'user_role'   => 'Student',
             ]);
 
             return response()->json([
