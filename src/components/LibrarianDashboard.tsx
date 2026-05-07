@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import api from '../api/axios';
+import axios from "axios";
 import Layout from './Layout';
-import { User } from '../types';
+import { User } from '../App';
 import { BookOpen, TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +16,7 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/dashboard")
+    axios.get("http://localhost:8000/api/dashboard")
       .then(res => setDashboard(res.data))
       .catch(err => console.error(err));
   }, []);

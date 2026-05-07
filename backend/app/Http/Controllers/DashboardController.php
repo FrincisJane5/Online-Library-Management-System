@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;    
 use App\Models\Attendance;
-use App\Models\Student;
 use App\Models\Book;
 use App\Models\ActivityLog;
 use App\Models\BorrowingRecord;
@@ -31,13 +30,19 @@ class DashboardController extends Controller
         });
 
         // 📦 Stats
-        $totalStudents = Student::count();
-        $totalBooks = Book::count();
+        $totalStudents = Attendance::distinct('id_number')->count('id_number');
+        $totalBooks    = Book::count();
         $totalBorrowed = BorrowingRecord::where('status', 'borrowed')->count();
-        $totalFines = BorrowingRecord::where('fine_status', 'Unpaid')->sum('fine_amount');
+        $totalFines    = (float) BorrowingRecord::where('fine_status', 'Unpaid')->sum('fine_amount');
 
         // 🕒 Recent Activity (latest 5)
-        $activities = ActivityLog::latest()->take(5)->get();
+        $activities = ActivityLog::latest()->take(5)->get()->map(fn($log) => [
+            'id'          => $log->id,
+            'action'      => $log->action,
+            'description' => $log->description,
+            'user_name'   => $log->user_name,
+            'created_at'  => $log->created_at?->format('Y-m-d H:i'),
+        ]);
 
         return response()->json([
             'attendance_chart' => $attendance,

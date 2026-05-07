@@ -52,8 +52,12 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       setSelectedBook(null);
       setBookQuery('');
       onSuccess('Book successfully borrowed! Inventory updated.');
-    } catch (err) {
-      onError(err);
+    } catch (err: any) {
+      if (err?.response?.data?.error === 'no_attendance') {
+        onError({ response: { data: { message: `Student ID "${form.idNumber}" has no attendance record for today. Ask the student to submit attendance first at /LccLibraryAttendance.` } } });
+      } else {
+        onError(err);
+      }
     }
   };
 
