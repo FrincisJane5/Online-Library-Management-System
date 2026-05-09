@@ -1,6 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\HelloWorldMail;
+
+Route::get('/test-mail', function () {
+    Mail::to('test@example.com')->send(new HelloWorldMail());
+    return 'Hello World email sent!';
+});
 use App\Http\Controllers\AttendanceController;
 
 
