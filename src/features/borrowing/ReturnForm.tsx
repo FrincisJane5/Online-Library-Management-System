@@ -23,8 +23,8 @@ export default function ReturnForm({ records, onSuccess, onError }: Props) {
       r.status === 'borrowed' && (
         `${r.id}`.includes(term) ||
         r.student_name.toLowerCase().includes(term) ||
-        r.id_number.toLowerCase().includes(term) ||
-        r.book_title.toLowerCase().includes(term)
+        r.book_title.toLowerCase().includes(term) ||
+        (r.call_number ?? '').toLowerCase().includes(term)
       )
     ) ?? null;
   }, [records, query]);
@@ -48,7 +48,7 @@ export default function ReturnForm({ records, onSuccess, onError }: Props) {
 
   const DETAIL_ROWS = matched ? [
     ['Student Name', matched.student_name],
-    ['ID Number', matched.id_number],
+    ['Call Number', matched.call_number ?? '—'],
     ['Book Title', matched.book_title],
     ['Date Borrowed', matched.borrow_date],
     ['Due Date', matched.due_date],
@@ -64,7 +64,7 @@ export default function ReturnForm({ records, onSuccess, onError }: Props) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search by student name, ID, or book title..."
+            placeholder="Search by student name, call number, or book title..."
             required
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
           />

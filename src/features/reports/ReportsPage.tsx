@@ -138,11 +138,14 @@ export default function ReportsPage() {
 
           {/* Inventory */}
           {!loading && active === 'inventory' && data.length > 0 && (
-            <Table headers={['Category', 'Total', 'Available', 'Borrowed', 'Damaged', 'Lost']}>
+            <Table headers={['No.', 'Title', 'Author', 'Copyright', 'Copy Count', 'Available', 'Borrowed', 'Damaged', 'Lost']}>
               {data.map((r, i) => (
                 <tr key={i} className="hover:bg-slate-50">
-                  <td className="px-6 py-4">{r.category}</td>
-                  <td className="px-6 py-4 text-center">{r.total}</td>
+                  <td className="px-6 py-4 text-slate-500 text-center">{r.no}</td>
+                  <td className="px-6 py-4 font-medium">{r.title}</td>
+                  <td className="px-6 py-4 text-slate-600">{r.author}</td>
+                  <td className="px-6 py-4 text-center text-slate-600">{r.copyright}</td>
+                  <td className="px-6 py-4 text-center font-medium">{r.copyCount}</td>
                   <td className="px-6 py-4 text-center text-green-700 font-medium">{r.available}</td>
                   <td className="px-6 py-4 text-center text-orange-700">{r.borrowed}</td>
                   <td className="px-6 py-4 text-center text-yellow-700">{r.damaged}</td>

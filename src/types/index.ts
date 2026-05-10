@@ -3,7 +3,7 @@ export interface User {
   username: string;
   fullName: string;
   role: 'admin' | 'staff';
-  status?: 'Active' | 'Deactivated';
+  status?: 'Active' | 'Inactive';
 }
 
 export interface Book {

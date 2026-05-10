@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { User } from "../App";
+import type { User } from "../types";
 
 interface Props {
   user: User | null;

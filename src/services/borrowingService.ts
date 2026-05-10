@@ -6,6 +6,8 @@ export interface BorrowPayload {
   id_number: string;
   email?: string;
   contact_number?: string;
+  course?: string;
+  year?: string;
   book_title: string;
   call_number?: string;
   borrow_date: string;

@@ -13,6 +13,8 @@ export default function Settings({ user, onLogout }: SettingsProps) {
   const [settings, setSettings] = useState({
     loanDuration: '7',
     fineRate: '5',
+    damagedFine: '100',
+    lostFine: '500',
     openTime: '08:00',
     closeTime: '17:00',
     emailNotifications: true,
@@ -28,6 +30,8 @@ export default function Settings({ user, onLogout }: SettingsProps) {
       setSettings({
         loanDuration: String(payload.loan_duration ?? 7),
         fineRate: String(payload.fine_rate ?? 5),
+        damagedFine: String(payload.damaged_fine ?? 100),
+        lostFine: String(payload.lost_fine ?? 500),
         openTime: String(payload.open_time ?? '08:00'),
         closeTime: String(payload.close_time ?? '17:00'),
         emailNotifications: Boolean(payload.email_notifications),
@@ -40,13 +44,15 @@ export default function Settings({ user, onLogout }: SettingsProps) {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     api.put('/settings', {
-      loan_duration: Number(settings.loanDuration),
-      fine_rate: Number(settings.fineRate),
-      open_time: settings.openTime,
-      close_time: settings.closeTime,
-      email_notifications: settings.emailNotifications,
-      sms_notifications: settings.smsNotifications,
-      library_policies: settings.libraryPolicies,
+      loan_duration:        Number(settings.loanDuration),
+      fine_rate:            Number(settings.fineRate),
+      damaged_fine:         Number(settings.damagedFine),
+      lost_fine:            Number(settings.lostFine),
+      open_time:            settings.openTime,
+      close_time:           settings.closeTime,
+      email_notifications:  settings.emailNotifications,
+      sms_notifications:    settings.smsNotifications,
+      library_policies:     settings.libraryPolicies,
     }).then(() => {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -104,6 +110,43 @@ export default function Settings({ user, onLogout }: SettingsProps) {
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <p className="text-slate-500 mt-1">Amount charged per day for overdue books</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Penalty Fines */}
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+            <h3 className="text-slate-900 mb-4">Penalty Fines</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="damagedFine" className="block text-slate-700 mb-2">
+                  Damaged Book Fine (₱)
+                </label>
+                <input
+                  id="damagedFine"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={settings.damagedFine}
+                  onChange={(e) => setSettings({ ...settings, damagedFine: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <p className="text-slate-500 mt-1">One-time fee when a book is returned damaged</p>
+              </div>
+              <div>
+                <label htmlFor="lostFine" className="block text-slate-700 mb-2">
+                  Lost Book Fine (₱)
+                </label>
+                <input
+                  id="lostFine"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={settings.lostFine}
+                  onChange={(e) => setSettings({ ...settings, lostFine: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <p className="text-slate-500 mt-1">One-time fee when a book is reported lost</p>
               </div>
             </div>
           </div>

@@ -58,16 +58,30 @@ class ReportsController extends Controller
 
     public function inventory()
     {
-        $books = Book::selectRaw('
-            category,
-            SUM(total) as total,
-            SUM(available) as available,
-            SUM(borrowed) as borrowed,
-            SUM(damaged) as damaged,
-            SUM(lost) as lost
-        ')->groupBy('category')->get();
-
-        return response()->json($books);
+        return response()->json(
+            Book::select(['title', 'author', 'year',
+                \DB::raw('SUM(total) as total'),
+                \DB::raw('SUM(available) as available'),
+                \DB::raw('SUM(borrowed) as borrowed'),
+                \DB::raw('SUM(damaged) as damaged'),
+                \DB::raw('SUM(lost) as lost'),
+            ])
+            ->groupBy('title', 'author', 'year')
+            ->orderBy('title')
+            ->get()
+            ->values()
+            ->map(fn($b, $i) => [
+                'no'        => $i + 1,
+                'title'     => $b->title ?? '—',
+                'author'    => $b->author ?? '—',
+                'copyright' => $b->year ?? '—',
+                'copyCount' => (int) $b->total,
+                'available' => (int) $b->available,
+                'borrowed'  => (int) $b->borrowed,
+                'damaged'   => (int) $b->damaged,
+                'lost'      => (int) $b->lost,
+            ])
+        );
     }
 
     public function overdue(Request $request)

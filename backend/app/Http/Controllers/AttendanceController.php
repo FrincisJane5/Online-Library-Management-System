@@ -32,8 +32,6 @@ class AttendanceController extends Controller
         $data = $request->validate([
             'id_number' => 'required|string|max:50',
             'name'      => 'required|string|max:255',
-            'email'     => 'nullable|email|max:255',
-            'phone'     => 'required|string|max:50',
             'course'    => 'required|in:BSIT,BSBA,BSED,BSCRIM',
             'year'      => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
             'purpose'   => 'required|string|max:255',
@@ -59,8 +57,6 @@ class AttendanceController extends Controller
             $attendance = Attendance::create([
                 'id_number' => $data['id_number'],
                 'name'      => $data['name'],
-                'email'     => $data['email'] ?? null,
-                'phone'     => $data['phone'],
                 'course'    => $data['course'],
                 'year'      => $data['year'],
                 'purpose'   => $data['purpose'],

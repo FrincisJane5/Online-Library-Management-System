@@ -52,4 +52,10 @@ class User extends Authenticatable
             'last_login' => 'datetime',
         ];
     }
+
+    /** One user → many activity log entries */
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class, 'user_id');
+    }
 }

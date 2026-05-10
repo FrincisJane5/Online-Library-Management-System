@@ -12,7 +12,8 @@ interface Props {
 }
 
 const EMPTY_FORM = {
-  studentName: '', idNumber: '', email: '', contactNumber: '',
+  studentName: '', email: '', contactNumber: '',
+  course: '', year: '',
   dateBorrowed: today(), dueDate: '',
 };
 
@@ -30,7 +31,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
 
   const selectBook = (book: Book) => {
     setSelectedBook(book);
-    setBookQuery(book.title);
+    setBookQuery(book.title ?? book.call_number ?? '');
     setBookResults([]);
   };
 
@@ -40,23 +41,21 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
     try {
       await borrowingService.borrow({
         student_name:   form.studentName,
-        id_number:      form.idNumber,
         email:          form.email || undefined,
         contact_number: form.contactNumber || undefined,
-        book_title:     selectedBook.title,
+        course:         form.course || undefined,
+        year:           form.year || undefined,
+        book_title:     selectedBook.title ?? '',
+        call_number:    selectedBook.call_number ?? undefined,
         borrow_date:    form.dateBorrowed,
         due_date:       form.dueDate,
       });
       setForm(EMPTY_FORM);
       setSelectedBook(null);
       setBookQuery('');
-      onSuccess('Book successfully borrowed! Inventory updated.');
+      onSuccess('Book successfully borrowed! A confirmation email has been sent to the student.');
     } catch (err: any) {
-      if (err?.response?.data?.error === 'no_attendance') {
-        onError({ response: { data: { message: `Student ID "${form.idNumber}" has no attendance record for today. Ask the student to submit attendance first at /LccLibraryAttendance.` } } });
-      } else {
-        onError(err);
-      }
+      onError(err);
     }
   };
 
@@ -67,10 +66,6 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Attendance notice */}
-      <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-        ⚠ Student must have a valid attendance record for today before borrowing is allowed.
-      </p>
 
       {/* Student info */}
       <div>
@@ -78,14 +73,16 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         <div className="space-y-3">
           <input {...field('studentName')} placeholder="Student Full Name" required
             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input {...field('idNumber')} placeholder="ID Number" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-            <input {...field('email')} type="email" placeholder="Gmail Address" required
-              pattern="^[a-zA-Z0-9._%+\-]+@gmail\.com$"
-              title="Must be a Gmail address (e.g. name@gmail.com)"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input {...field('email')} type="email" placeholder="Email Address" required
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
             <input {...field('contactNumber')} placeholder="Contact Number" required
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input {...field('course')} placeholder="Course (e.g. BSIT)" required
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <input {...field('year')} placeholder="Year (e.g. 2nd Year)" required
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
           </div>
         </div>
@@ -96,12 +93,10 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         <h3 className="text-slate-900 mb-4">Book Information</h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            value={bookQuery}
+          <input value={bookQuery}
             onChange={e => { setBookQuery(e.target.value); setSelectedBook(null); }}
             placeholder="Search by title, call number, or author..."
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
+            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
         </div>
 
         {bookResults.length > 0 && (
@@ -109,18 +104,22 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
             {bookResults.map(book => (
               <button key={book.id} type="button" onClick={() => selectBook(book)}
                 className="w-full text-left px-4 py-3 hover:bg-slate-50">
-                <p className="text-slate-900 font-medium">{book.title}</p>
-                <p className="text-slate-500 text-sm">{book.author} · {book.available} available</p>
+                <p className="text-slate-900 font-medium">{book.title ?? '—'}</p>
+                <p className="text-slate-500 text-sm">
+                  {book.call_number && <span className="font-mono font-semibold text-teal-700 mr-2">[{book.call_number}]</span>}
+                  {book.author} · <span className="text-green-700">{book.available} available</span>
+                </p>
               </button>
             ))}
           </div>
         )}
 
         {selectedBook && (
-          <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <div><p className="text-slate-500">Status</p><p className="text-green-700 font-medium">Available</p></div>
-            <div><p className="text-slate-500">Copies</p><p className="text-slate-900">{selectedBook.available}</p></div>
-            <div><p className="text-slate-500">Author</p><p className="text-slate-900">{selectedBook.author}</p></div>
+          <div className="mt-3 bg-teal-50 border border-teal-200 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div><p className="text-slate-500">Call No.</p><p className="font-mono font-bold text-teal-700">{selectedBook.call_number ?? '—'}</p></div>
+            <div><p className="text-slate-500">Title</p><p className="text-slate-900">{selectedBook.title ?? '—'}</p></div>
+            <div><p className="text-slate-500">Author</p><p className="text-slate-900">{selectedBook.author ?? '—'}</p></div>
+            <div><p className="text-slate-500">Available</p><p className="text-green-700 font-medium">{selectedBook.available}</p></div>
           </div>
         )}
       </div>
