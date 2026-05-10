@@ -17,8 +17,11 @@ use Illuminate\Support\Facades\Route;
 // ─── Public ──────────────────────────────────────────────────────────────────
 Route::post('/auth/login',           [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);
-Route::post('/attendance',           [AttendanceController::class, 'store']);   // student kiosk
-Route::get('/programs',              [ProgramController::class, 'index']);       // attendance form dropdown
+Route::post('/attendance',           [AttendanceController::class, 'store']);
+Route::get('/programs',              [ProgramController::class, 'index']);
+Route::get('/network-url',           fn() => response()->json([
+    'url' => 'http://' . gethostbyname(gethostname()) . ':3000',
+]));
 
 // ─── Staff + Admin (authenticated via X-User-Role header) ────────────────────
 Route::middleware([])->group(function () {

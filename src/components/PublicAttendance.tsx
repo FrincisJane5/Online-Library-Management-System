@@ -6,7 +6,6 @@ import logoImage from '../assets/logo.png';
 interface Program { id: number; code: string; name: string; year_levels: string[]; }
 
 const EMPTY = { id_number: '', name: '', course: '', year: '', purpose: '' };
-const ATTENDANCE_URL = `${window.location.origin}/LccLibraryAttendance`;
 
 export default function PublicAttendance() {
   const [form, setForm]         = useState(EMPTY);
@@ -15,9 +14,12 @@ export default function PublicAttendance() {
   const [done, setDone]         = useState(false);
   const [error, setError]       = useState('');
   const [showQR, setShowQR]     = useState(false);
+  const [qrUrl, setQrUrl]       = useState(window.location.origin + '/LccLibraryAttendance');
 
   useEffect(() => {
     api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
+    // Fetch the real network IP so the QR works on any device on the same WiFi
+    api.get('/network-url').then(r => setQrUrl(r.data.url + '/LccLibraryAttendance')).catch(() => {});
   }, []);
 
   const selectedProgram = programs.find(p => p.code === form.course);
@@ -61,8 +63,8 @@ export default function PublicAttendance() {
         {showQR && (
           <div className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center gap-3">
             <p className="text-sm text-gray-600 text-center">Scan this QR code with any phone camera to open the attendance form</p>
-            <QRCodeSVG value={ATTENDANCE_URL} size={200} level="H" includeMargin />
-            <p className="text-xs text-gray-400 break-all text-center">{ATTENDANCE_URL}</p>
+            <QRCodeSVG value={qrUrl} size={200} level="H" includeMargin />
+            <p className="text-xs text-gray-400 break-all text-center">{qrUrl}</p>
           </div>
         )}
 
