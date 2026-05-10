@@ -1,19 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { QRCodeSVG } from 'qrcode.react';
 import logoImage from '../assets/logo.png';
 
-const COURSES = ['BSIT', 'BSBA', 'BSED', 'BSCRIM'];
-const YEARS   = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-const EMPTY   = { id_number: '', name: '', course: '', year: '', purpose: '' };
+interface Program { id: number; code: string; name: string; year_levels: string[]; }
+
+const EMPTY = { id_number: '', name: '', course: '', year: '', purpose: '' };
 const ATTENDANCE_URL = `${window.location.origin}/LccLibraryAttendance`;
 
 export default function PublicAttendance() {
-  const [form, setForm]       = useState(EMPTY);
-  const [loading, setLoading] = useState(false);
-  const [done, setDone]       = useState(false);
-  const [error, setError]     = useState('');
-  const [showQR, setShowQR]   = useState(false);
+  const [form, setForm]         = useState(EMPTY);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [done, setDone]         = useState(false);
+  const [error, setError]       = useState('');
+  const [showQR, setShowQR]     = useState(false);
+
+  useEffect(() => {
+    api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
+  }, []);
+
+  const selectedProgram = programs.find(p => p.code === form.course);
+  const yearLevels = selectedProgram?.year_levels ?? [];
 
   const set = (key: keyof typeof EMPTY) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -82,15 +90,16 @@ export default function PublicAttendance() {
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C]" />
             <input value={form.name} onChange={set('name')} placeholder="Full Name" required
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C]" />
-            <select value={form.course} onChange={set('course')} required
+            <select value={form.course} onChange={e => setForm(f => ({ ...f, course: e.target.value, year: '' }))} required
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C]">
               <option value="">Select Course</option>
-              {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+              {programs.map(p => <option key={p.code} value={p.code}>{p.code} — {p.name}</option>)}
             </select>
-            <select value={form.year} onChange={set('year')} required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C]">
+            <select value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} required
+              disabled={!selectedProgram}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] disabled:opacity-50">
               <option value="">Select Year Level</option>
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              {yearLevels.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             <input value={form.purpose} onChange={set('purpose')} placeholder="Purpose of Visit" required
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C]" />

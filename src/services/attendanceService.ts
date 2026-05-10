@@ -1,15 +1,9 @@
+// Attendance API calls are made directly via the shared `api` instance in each component.
+// AttendanceManagement uses api.get('/attendance') directly.
+// PublicAttendance uses api.post('/attendance') directly.
+// This file is intentionally minimal — add methods here if you centralize attendance calls.
 import api from '../api/axios';
-import type { Attendance } from '../types';
-
-export interface AttendancePayload {
-  id_number: string;
-  name: string;
-  course: string;
-  year: string;
-  purpose: string;
-}
 
 export const attendanceService = {
-  getAll: () => api.get<Attendance[]>('/attendance').then(r => r.data),
-  record: (data: AttendancePayload) => api.post<Attendance>('/attendance', data).then(r => r.data),
+  getAll: () => api.get('/attendance').then(r => r.data),
 };

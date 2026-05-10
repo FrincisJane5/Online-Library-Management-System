@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Save, Info } from 'lucide-react';
+import { Save, Info, Plus, Trash2, Edit, X } from 'lucide-react';
 import api from '../api/axios';
 
 interface SettingsProps {
@@ -23,6 +23,18 @@ export default function Settings({ user, onLogout }: SettingsProps) {
   });
 
   const [saved, setSaved] = useState(false);
+
+  // Program management state
+  interface Program { id: number; code: string; name: string; total_years: number; }
+  const [programs, setPrograms]       = useState<Program[]>([]);
+  const [progForm, setProgForm]       = useState({ code: '', name: '', total_years: 4 });
+  const [editingProg, setEditingProg] = useState<Program | null>(null);
+  const [showProgModal, setShowProgModal] = useState(false);
+  const [progError, setProgError]     = useState('');
+
+  const fetchPrograms = () => api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
+
+  useEffect(() => { fetchPrograms(); }, []);
 
   useEffect(() => {
     api.get('/settings').then((res) => {
@@ -252,6 +264,96 @@ export default function Settings({ user, onLogout }: SettingsProps) {
             </button>
           </div>
         </form>
+
+        {/* ── Program Management ─────────────────────────────────────── */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-slate-900">Program Management</h3>
+            <button onClick={() => { setProgForm({ code: '', name: '', total_years: 4 }); setEditingProg(null); setProgError(''); setShowProgModal(true); }}
+              className="flex items-center gap-2 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm transition-colors">
+              <Plus className="w-4 h-4" /> Add Program
+            </button>
+          </div>
+          <p className="text-slate-500 text-sm mb-4">Degree programs available in the attendance form. Year levels are generated automatically from the program duration.</p>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-2 text-left text-slate-700">Code</th>
+                <th className="px-4 py-2 text-left text-slate-700">Program Name</th>
+                <th className="px-4 py-2 text-center text-slate-700">Years</th>
+                <th className="px-4 py-2 text-center text-slate-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {programs.map(p => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-mono font-medium">{p.code}</td>
+                  <td className="px-4 py-3 text-slate-700">{p.name}</td>
+                  <td className="px-4 py-3 text-center">{p.total_years}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex justify-center gap-2">
+                      <button onClick={() => { setEditingProg(p); setProgForm({ code: p.code, name: p.name, total_years: p.total_years }); setProgError(''); setShowProgModal(true); }}
+                        className="text-blue-600 hover:text-blue-800"><Edit className="w-4 h-4" /></button>
+                      <button onClick={async () => { if (!confirm(`Delete ${p.code}?`)) return; await api.delete(`/programs/${p.id}`); fetchPrograms(); }}
+                        className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {programs.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">No programs yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Program Modal */}
+        {showProgModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-md shadow-2xl">
+              <div className="flex justify-between items-center px-6 py-4 border-b">
+                <h3 className="font-bold text-slate-900">{editingProg ? 'Edit Program' : 'Add Program'}</h3>
+                <button onClick={() => setShowProgModal(false)}><X className="w-5 h-5 text-slate-400 hover:text-slate-700" /></button>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Code <span className="text-red-500">*</span></label>
+                  <input value={progForm.code} onChange={e => setProgForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                    placeholder="e.g. BSIT" maxLength={20}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Program Name <span className="text-red-500">*</span></label>
+                  <input value={progForm.name} onChange={e => setProgForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. Bachelor of Science in Information Technology"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Duration (Years) <span className="text-red-500">*</span></label>
+                  <select value={progForm.total_years} onChange={e => setProgForm(f => ({ ...f, total_years: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm">
+                    {[1,2,3,4,5,6].map(y => <option key={y} value={y}>{y} Year{y > 1 ? 's' : ''}</option>)}
+                  </select>
+                  <p className="text-slate-400 text-xs mt-1">Year levels (1st–{['','1st','2nd','3rd','4th','5th','6th'][progForm.total_years]} Year) will be auto-generated.</p>
+                </div>
+                {progError && <p className="text-red-600 text-sm">{progError}</p>}
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setShowProgModal(false)}
+                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm transition-colors">Cancel</button>
+                  <button onClick={async () => {
+                    if (!progForm.code || !progForm.name) { setProgError('Code and name are required.'); return; }
+                    try {
+                      if (editingProg) await api.put(`/programs/${editingProg.id}`, progForm);
+                      else await api.post('/programs', progForm);
+                      setShowProgModal(false);
+                      fetchPrograms();
+                    } catch (err: any) { setProgError(err.response?.data?.message || 'Failed to save.'); }
+                  }} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg text-sm transition-colors">
+                    {editingProg ? 'Save Changes' : 'Add Program'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

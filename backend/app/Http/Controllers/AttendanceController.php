@@ -32,8 +32,8 @@ class AttendanceController extends Controller
         $data = $request->validate([
             'id_number' => 'required|string|max:50',
             'name'      => 'required|string|max:255',
-            'course'    => 'required|in:BSIT,BSBA,BSED,BSCRIM',
-            'year'      => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
+            'course'    => 'required|string|exists:programs,code',
+            'year'      => 'required|string|max:20',
             'purpose'   => 'required|string|max:255',
         ]);
 

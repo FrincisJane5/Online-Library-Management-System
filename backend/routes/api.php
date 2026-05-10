@@ -8,6 +8,7 @@ use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\LibrarySettingController;
+use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\UserManagementController;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/login',           [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);
 Route::post('/attendance',           [AttendanceController::class, 'store']);   // student kiosk
+Route::get('/programs',              [ProgramController::class, 'index']);       // attendance form dropdown
 
 // ─── Staff + Admin (authenticated via X-User-Role header) ────────────────────
 Route::middleware([])->group(function () {
@@ -75,4 +77,9 @@ Route::middleware(['admin'])->group(function () {
 
     // Settings (write)
     Route::put('/settings', [LibrarySettingController::class, 'update']);
+
+    // Program management
+    Route::post('/programs',              [ProgramController::class, 'store']);
+    Route::put('/programs/{program}',     [ProgramController::class, 'update']);
+    Route::delete('/programs/{program}',  [ProgramController::class, 'destroy']);
 });

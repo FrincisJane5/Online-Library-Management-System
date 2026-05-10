@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Mail\OverdueReminderMail;
 use App\Models\BorrowingRecord;
 use App\Models\NotificationLog;
+use App\Services\BorrowingService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
@@ -13,6 +14,11 @@ class SendOverdueReminders extends Command
 {
     protected $signature   = 'library:send-overdue-reminders';
     protected $description = 'Send overdue reminder emails to all students with unpaid fines';
+
+    public function __construct(private BorrowingService $service)
+    {
+        parent::__construct();
+    }
 
     public function handle(): void
     {
@@ -24,9 +30,8 @@ class SendOverdueReminders extends Command
 
         $sent = 0;
         foreach ($overdue as $record) {
-            $daysOverdue = max(0, Carbon::parse($record->due_date)->diffInDays(Carbon::today(), false));
-            $type        = $record->fine_amount > 0 ? 'Fine Reminder' : 'Overdue';
-            $message     = $this->buildMessage($record, $daysOverdue, $type);
+            $type    = $this->service->notificationType($record);
+            $message = $this->service->buildReminderMessage($record);
 
             $status = 'Failed';
             $sentAt = null;
@@ -52,21 +57,5 @@ class SendOverdueReminders extends Command
         }
 
         $this->info("Sent reminders to {$sent} of {$overdue->count()} student(s).");
-    }
-
-    private function buildMessage(BorrowingRecord $record, int $daysOverdue, string $type): string
-    {
-        $base = "Dear {$record->student_name},\n\n";
-        if ($type === 'Fine Reminder') {
-            $base .= "Your borrowed book \"{$record->book_title}\"";
-            if ($record->call_number) $base .= " (Call No: {$record->call_number})";
-            $base .= " is {$daysOverdue} day(s) overdue. A fine of ₱" . number_format($record->fine_amount, 2) . " has been incurred.\n\nPlease return the book and settle your fine at the library counter immediately.";
-        } else {
-            $base .= "Your borrowed book \"{$record->book_title}\"";
-            if ($record->call_number) $base .= " (Call No: {$record->call_number})";
-            $base .= " is {$daysOverdue} day(s) overdue (due: {$record->due_date}).\n\nPlease return the book as soon as possible to avoid fines.";
-        }
-        $base .= "\n\n— Legacy College of Compostela Library";
-        return $base;
     }
 }

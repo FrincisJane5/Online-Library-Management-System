@@ -7,21 +7,6 @@ use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
-    public function notifications()
-    {
-        $logs = \App\Models\ActivityLog::where('action', 'Notification')
-            ->latest()
-            ->get()
-            ->map(fn($log) => [
-                'id'          => $log->id,
-                'dateTime'    => $log->created_at?->format('Y-m-d H:i'),
-                'description' => $log->description,
-                'sentBy'      => $log->user_name ?: 'System',
-            ]);
-
-        return response()->json($logs);
-    }
-
     public function index(Request $request)
     {
         $query = ActivityLog::query()->latest();
