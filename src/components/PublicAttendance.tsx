@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { QRCodeSVG } from 'qrcode.react';
 import logoImage from '../assets/logo.png';
 
 interface Program { id: number; code: string; name: string; year_levels: string[]; }
@@ -13,7 +12,6 @@ export default function PublicAttendance() {
   const [loading, setLoading]   = useState(false);
   const [done, setDone]         = useState(false);
   const [error, setError]       = useState('');
-  const [showQR, setShowQR]     = useState(false);
   const [qrUrl, setQrUrl]       = useState(window.location.origin + '/LccLibraryAttendance');
 
   useEffect(() => {
@@ -50,23 +48,6 @@ export default function PublicAttendance() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-md space-y-4">
-
-        {/* QR Code toggle button */}
-        <div className="text-center">
-          <button onClick={() => setShowQR(v => !v)}
-            className="text-sm text-[#1B764C] underline hover:text-[#016937]">
-            {showQR ? 'Hide QR Code' : '📱 Show QR Code to scan with phone'}
-          </button>
-        </div>
-
-        {/* QR Code panel */}
-        {showQR && (
-          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center gap-3">
-            <p className="text-sm text-gray-600 text-center">Scan this QR code with any phone camera to open the attendance form</p>
-            <QRCodeSVG value={qrUrl} size={200} level="H" includeMargin />
-            <p className="text-xs text-gray-400 break-all text-center">{qrUrl}</p>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md space-y-4">
           {/* Logo + Header */}

@@ -203,7 +203,6 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                 <th className="px-4 py-3 text-center">Year</th>
                 <th className="px-4 py-3 text-center">Pages</th>
                 <th className="px-4 py-3 text-center">Cost</th>
-                <th className="px-4 py-3 text-center">Total</th>
                 <th className="px-4 py-3 text-center">Avail.</th>
                 <th className="px-4 py-3 text-center">Borrowed</th>
                 <th className="px-4 py-3 text-center">Damaged</th>
@@ -223,7 +222,6 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                   <td className="px-4 py-3 text-center">{book.year ?? '—'}</td>
                   <td className="px-4 py-3 text-center">{book.pages ?? '—'}</td>
                   <td className="px-4 py-3 text-center">{book.cost_price != null ? `₱${Number(book.cost_price).toFixed(2)}` : '—'}</td>
-                  <td className="px-4 py-3 text-center">{book.total}</td>
                   <td className="px-4 py-3 text-center">{book.available}</td>
                   <td className="px-4 py-3 text-center">{book.borrowed}</td>
                   <td className="px-4 py-3 text-center">{book.damaged}</td>
@@ -272,12 +270,6 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                       className="w-full border p-2 rounded focus:ring-2 focus:ring-[#EF8B2D] outline-none"
                       onChange={e => setFormData({ ...formData, remarks: e.target.value })}
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Total Copies <span className="text-red-500">*</span></label>
-                    <input type="number" min="1" required value={formData.total}
-                      className="w-full border p-2 rounded focus:ring-2 focus:ring-[#EF8B2D] outline-none"
-                      onChange={e => setFormData({ ...formData, total: parseInt(e.target.value) || 1 })} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Status <span className="text-red-500">*</span></label>

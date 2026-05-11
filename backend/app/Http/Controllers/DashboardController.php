@@ -30,7 +30,7 @@ class DashboardController extends Controller
         });
 
         // 📦 Stats
-        $totalStudents = Attendance::distinct('id_number')->count('id_number');
+        $totalStudents = \App\Models\Student::count();
         $totalBooks    = Book::count();
         $totalBorrowed = BorrowingRecord::where('status', 'borrowed')->count();
         $totalFines    = (float) BorrowingRecord::where('fine_status', 'Unpaid')->sum('fine_amount');

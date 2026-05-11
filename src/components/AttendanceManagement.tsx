@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
 import { Search, Download, Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import api from '../api/axios';
 import { exportCSV } from '../utils';
 
@@ -30,9 +31,12 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   const [search, setSearch]       = useState('');
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
+  const [qrUrl, setQrUrl]         = useState(window.location.origin + '/LccLibraryAttendance');
+  const qrRef                     = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.get('/attendance').then(r => setData(r.data)).catch(console.error);
+    api.get('/network-url').then(r => setQrUrl(r.data.url + '/LccLibraryAttendance')).catch(() => {});
   }, []);
 
   const filtered = useMemo(() => data.filter(item =>
@@ -41,12 +45,35 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
     (!year   || item.year   === year)
   ), [data, search, course, year]);
 
-  const onlineUrl = `${window.location.origin}/LccLibraryAttendance`;
+  const onlineUrl = qrUrl;
+
+  const printQR = () => {
+    const svgEl = qrRef.current?.querySelector('svg');
+    if (!svgEl) return;
+    const win = window.open('', '_blank')!;
+    win.document.write(`<!DOCTYPE html><html><head><title>Library Attendance QR</title>
+      <style>
+        @page { size: A4; margin: 0; }
+        body { display:flex; flex-direction:column; align-items:center; justify-content:center;
+               min-height:100vh; font-family:Arial,sans-serif; gap:24px; padding:40px; box-sizing:border-box; }
+        h1 { color:#1B764C; font-size:28px; text-align:center; margin:0; }
+        p  { color:#555; font-size:14px; text-align:center; margin:0; }
+        svg { width:320px; height:320px; }
+      </style></head>
+      <body>
+        <h1>Scan to fill out the<br/>Library Attendance Form</h1>
+        ${svgEl.outerHTML}
+        <p>${qrUrl}</p>
+        <p style="font-size:12px;color:#999">Legacy College of Compostela — Library Management System</p>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  };
 
   const handleExport = () => exportCSV(
     filtered.map(r => ({
       Date: r.created_at, ID: r.id_number ?? '', Name: r.name,
-      Email: r.email ?? '', Phone: r.phone ?? '',
       Course: r.course, Year: r.year, Purpose: r.purpose,
     })),
     'attendance.csv'
@@ -58,10 +85,9 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
       <html><head><title>Attendance Report</title></head><body>
       <h2>Library Attendance Report</h2>
       <table border="1" cellpadding="8" cellspacing="0">
-        <tr><th>Date</th><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Course</th><th>Year</th><th>Purpose</th></tr>
+        <tr><th>Date</th><th>ID</th><th>Name</th><th>Course</th><th>Year</th><th>Purpose</th></tr>
         ${filtered.map(r => `<tr>
           <td>${r.created_at}</td><td>${r.id_number ?? ''}</td><td>${r.name}</td>
-          <td>${r.email ?? ''}</td><td>${r.phone ?? ''}</td>
           <td>${r.course}</td><td>${r.year}</td><td>${r.purpose}</td>
         </tr>`).join('')}
       </table></body></html>
@@ -79,17 +105,21 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
         </div>
 
         {/* QR Card */}
-        <div className="bg-white p-5 rounded-lg border border-[#9DA4A6] flex items-center justify-between">
-          <div>
-            <h3 className="text-[#4B4C58] font-semibold">Online Attendance via QR</h3>
-            <a href={onlineUrl} target="_blank" rel="noreferrer" className="text-[#1B764C] underline text-sm">
-              Open attendance form
+        <div className="bg-white p-5 rounded-lg border border-[#9DA4A6] flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="text-[#4B4C58] font-semibold mb-1">Online Attendance via QR</h3>
+            <p className="text-sm text-[#9DA4A6] mb-3">Students scan this QR code to fill out the attendance form on their phone.</p>
+            <a href={onlineUrl} target="_blank" rel="noreferrer" className="text-[#1B764C] underline text-sm block mb-3">
+              {onlineUrl}
             </a>
+            <button onClick={printQR}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1B764C] hover:bg-[#016937] text-white rounded-lg text-sm transition-colors">
+              <Printer className="w-4 h-4" /> Print QR Code
+            </button>
           </div>
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(onlineUrl)}`}
-            alt="Attendance QR"
-          />
+          <div ref={qrRef} className="flex-shrink-0">
+            <QRCodeSVG value={qrUrl} size={120} level="H" includeMargin />
+          </div>
         </div>
 
         {/* Filters */}
@@ -139,21 +169,19 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
             <table className="w-full">
               <thead className="bg-gray-100">
                 <tr>
-                  {['Date & Time', 'ID Number', 'Student Name', 'Email', 'Contact Number', 'Course', 'Year', 'Purpose'].map(h => (
+                  {['Date & Time', 'ID Number', 'Student Name', 'Course', 'Year', 'Purpose'].map(h => (
                     <th key={h} className="p-3 text-left text-sm font-medium text-gray-700">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center p-6 text-gray-500">No records found</td></tr>
+                  <tr><td colSpan={6} className="text-center p-6 text-gray-500">No records found</td></tr>
                 ) : filtered.map(item => (
                   <tr key={item.id} className="border-t hover:bg-gray-50">
                     <td className="p-3 text-sm">{item.created_at}</td>
                     <td className="p-3 text-sm">{item.id_number ?? '-'}</td>
                     <td className="p-3 text-sm">{item.name}</td>
-                    <td className="p-3 text-sm">{item.email ?? '-'}</td>
-                    <td className="p-3 text-sm">{item.phone ?? '-'}</td>
                     <td className="p-3 text-sm">{item.course}</td>
                     <td className="p-3 text-sm">{item.year}</td>
                     <td className="p-3 text-sm">{item.purpose}</td>
