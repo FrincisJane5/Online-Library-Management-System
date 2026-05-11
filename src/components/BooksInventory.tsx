@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
 import { Search, Plus, Edit, Trash2, X } from 'lucide-react';
 import api from '../api/axios';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from './Pagination';
 
 interface BooksInventoryProps {
   user: User;
@@ -134,10 +136,13 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
     } catch (err) { console.error(err); }
   };
 
-  const filtered = books.filter(b =>
+  const filtered = useMemo(() => books.filter(b =>
     (!searchTerm || [b.title, b.author, b.call_number].some(v => v?.toLowerCase().includes(searchTerm.toLowerCase()))) &&
     (!statusFilter || b.status === statusFilter)
-  );
+  ), [books, searchTerm, statusFilter]);
+
+  const { paged, page, totalPages, setPage, reset, total } = usePagination(filtered);
+  useEffect(() => { reset(); }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const statusColor = (s: string) => ({
     Available: 'bg-[#79C39F] text-white',
@@ -213,7 +218,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.length > 0 ? filtered.map(book => (
+              {filtered.length > 0 ? paged.map(book => (
                 <tr key={book.id} className="hover:bg-[#F5F6F5] transition-colors">
                   <td className="px-4 py-3 font-mono text-xs">{book.call_number ?? '—'}</td>
                   <td className="px-4 py-3 font-semibold">{book.title ?? '—'}</td>
@@ -242,6 +247,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
               )}
             </tbody>
           </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
         </div>
 
         {/* Modal */}

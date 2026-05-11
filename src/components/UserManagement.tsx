@@ -3,6 +3,8 @@ import Layout from './Layout';
 import { User } from '../types';
 import { Plus, AlertCircle, X, KeyRound } from 'lucide-react';
 import api from '../api/axios';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from './Pagination';
 
 interface UserManagementProps {
   user: User;
@@ -53,6 +55,8 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const { paged, page, totalPages, setPage, total } = usePagination(staffUsers);
 
   const resetForm = () => { setFormData(emptyForm); setEditingUser(null); };
 
@@ -156,7 +160,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {staffUsers.map(su => {
+              {paged.map(su => {
                 const isInactive = su.status === 'Inactive';
                 return (
                   <tr key={su.id} className={isInactive ? 'bg-red-50 opacity-70' : 'hover:bg-slate-50'}>
@@ -212,6 +216,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
               )}
             </tbody>
           </table>
+          <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
         </div>
 
         {/* Add / Edit Modal — white */}

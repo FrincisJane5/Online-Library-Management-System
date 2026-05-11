@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
 import { Search, Eye, X } from 'lucide-react';
 import api from '../api/axios';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from './Pagination';
 
 interface NotificationsProps { user: User; onLogout: () => void; }
 
@@ -46,6 +48,9 @@ export default function Notifications({ user, onLogout }: NotificationsProps) {
       .catch(console.error)
       .finally(() => setLoading(false));
   };
+
+  const { paged, page, totalPages, setPage, reset, total } = usePagination(notifications);
+  useEffect(() => { reset(); }, [notifications]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetchNotifications('', '', ''); }, []);
 
@@ -106,7 +111,7 @@ export default function Notifications({ user, onLogout }: NotificationsProps) {
                   <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400">Loading...</td></tr>
                 ) : notifications.length === 0 ? (
                   <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400">No notifications found.</td></tr>
-                ) : notifications.map(n => (
+                ) : paged.map(n => (
                   <tr key={n.id} className="hover:bg-slate-50">
                     <td className="px-5 py-4 text-slate-500 whitespace-nowrap">{n.dateTime}</td>
                     <td className="px-5 py-4 font-medium text-slate-900">{n.studentName}</td>
@@ -132,9 +137,7 @@ export default function Notifications({ user, onLogout }: NotificationsProps) {
             </table>
           </div>
           {!loading && notifications.length > 0 && (
-            <div className="px-5 py-3 bg-slate-50 border-t text-sm text-slate-500">
-              {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
-            </div>
+            <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
           )}
         </div>
       </div>

@@ -3,6 +3,8 @@ import Layout from './Layout';
 import { User } from '../types';
 import { Search, Send, Check } from 'lucide-react';
 import api from '../api/axios';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from './Pagination';
 
 interface OverdueFinesProps {
   user: User;
@@ -52,6 +54,9 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
     const matchesPenalty = !penaltyFilter || (penaltyFilter === 'overdue' ? !fine.action : fine.action === penaltyFilter);
     return matchesSearch && matchesStatus && matchesPenalty;
   }), [fines, searchTerm, statusFilter, penaltyFilter]);
+
+  const { paged, page, totalPages, setPage, reset, total } = usePagination(filteredFines);
+  useEffect(() => { reset(); }, [filteredFines]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendAllReminders = async () => {
     try {
@@ -153,7 +158,7 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {filteredFines.map((fine) => {
+                {paged.map((fine) => {
                   const penalty = getPenaltyInfo(fine);
                   return (
                     <tr key={fine.id} className="hover:bg-slate-50">
@@ -203,12 +208,7 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
           )}
 
           {filteredFines.length > 0 && (
-            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-sm">
-              <p className="text-slate-500">{filteredFines.length} of {fines.length} records</p>
-              <p className="font-medium text-slate-900">
-                Total Unpaid: ₱{fines.filter(f => isUnpaid(f.status)).reduce((s, f) => s + f.fineAmount, 0).toFixed(2)}
-              </p>
-            </div>
+            <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
           )}
         </div>
       </div>

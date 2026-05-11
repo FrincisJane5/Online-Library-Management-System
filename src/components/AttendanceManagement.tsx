@@ -5,6 +5,8 @@ import { Search, Download, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../api/axios';
 import { exportCSV } from '../utils';
+import { usePagination } from '../hooks/usePagination';
+import Pagination from './Pagination';
 
 interface AttendanceManagementProps {
   user: User;
@@ -44,6 +46,10 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
     (!course || item.course === course) &&
     (!year   || item.year   === year)
   ), [data, search, course, year]);
+
+  const { paged, page, totalPages, setPage, reset, total } = usePagination(filtered);
+  // Reset to page 1 whenever filters change
+  useEffect(() => { reset(); }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onlineUrl = qrUrl;
 
@@ -177,7 +183,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               <tbody>
                 {filtered.length === 0 ? (
                   <tr><td colSpan={6} className="text-center p-6 text-gray-500">No records found</td></tr>
-                ) : filtered.map(item => (
+                ) : paged.map(item => (
                   <tr key={item.id} className="border-t hover:bg-gray-50">
                     <td className="p-3 text-sm">{item.created_at}</td>
                     <td className="p-3 text-sm">{item.id_number ?? '-'}</td>
@@ -191,9 +197,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="px-4 py-3 bg-gray-50 border-t text-sm text-gray-500">
-              {filtered.length} of {data.length} records
-            </div>
+            <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
           )}
         </div>
       </div>

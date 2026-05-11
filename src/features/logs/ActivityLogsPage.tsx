@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import { activityLogService } from '../../services/activityLogService';
 import type { ActivityLog } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/Pagination';
 
 const ACTION_COLOR: Record<string, string> = {
   Login:          'bg-slate-100 text-slate-700 border-slate-200',
@@ -34,6 +36,8 @@ export default function ActivityLogsPage() {
   const [logs, setLogs]       = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+
+  const { paged, page, totalPages, setPage, total } = usePagination(logs);
 
   const fetchLogs = async (s = search, a = action) => {
     setLoading(true);
@@ -121,7 +125,7 @@ export default function ActivityLogsPage() {
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">Loading...</td></tr>
               ) : logs.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No logs found.</td></tr>
-              ) : logs.map(log => (
+              ) : paged.map(log => (
                 <tr key={log.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 text-slate-900 whitespace-nowrap">{log.dateTime}</td>
                   <td className="px-6 py-4 text-slate-900">{log.user}</td>
@@ -134,9 +138,7 @@ export default function ActivityLogsPage() {
           </table>
         </div>
         {!loading && logs.length > 0 && (
-          <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
-            <p className="text-slate-500 text-sm">{logs.length} log{logs.length !== 1 ? 's' : ''}</p>
-          </div>
+          <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
         )}
       </div>
     </div>
