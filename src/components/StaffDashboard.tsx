@@ -60,9 +60,8 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-          <button onClick={() => navigate('/staff/books')}
-            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#1B764C] hover:shadow-md transition text-left">
+          {/* ... KPI Cards remain same ... */}
+          <button onClick={() => navigate('/staff/books')} className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#1B764C] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[#9DA4A6] font-medium">Total Books</p>
               <BookOpen className="w-5 h-5 text-[#1B764C]" />
@@ -70,8 +69,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
             <p className="text-[#4B4C58] text-2xl font-bold">{stats.books}</p>
           </button>
 
-          <button onClick={() => navigate('/staff/borrowing')}
-            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#EF8B2D] hover:shadow-md transition text-left">
+          <button onClick={() => navigate('/staff/borrowing')} className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#EF8B2D] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[#9DA4A6] font-medium">Books Borrowed</p>
               <RefreshCcw className="w-5 h-5 text-[#EF8B2D]" />
@@ -79,8 +77,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
             <p className="text-[#4B4C58] text-2xl font-bold">{stats.borrowed}</p>
           </button>
 
-          <button onClick={() => navigate('/staff/attendance')}
-            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#4B4C58] hover:shadow-md transition text-left">
+          <button onClick={() => navigate('/staff/attendance')} className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#4B4C58] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[#9DA4A6] font-medium">Students</p>
               <Users className="w-5 h-5 text-[#4B4C58]" />
@@ -88,27 +85,35 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
             <p className="text-[#4B4C58] text-2xl font-bold">{stats.students}</p>
           </button>
 
-          <button onClick={() => navigate('/staff/overdue')}
-            className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#D72A24] hover:shadow-md transition text-left">
+          <button onClick={() => navigate('/staff/overdue')} className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-[#D72A24] hover:shadow-md transition text-left">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[#9DA4A6] font-medium">Unpaid Fines</p>
               <Activity className="w-5 h-5 text-[#D72A24]" />
             </div>
             <p className="text-[#4B4C58] text-2xl font-bold">₱{Number(stats.fines ?? 0).toFixed(2)}</p>
           </button>
-
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Chart */}
+          {/* Updated Chart to match Librarian specs */}
           <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]/30">
             <h3 className="text-[#4B4C58] font-semibold mb-4">Library Visits (Mon–Sat)</h3>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
+                
+                {/* YAxis Configured for 0-500 with 100 increments */}
+                <YAxis 
+                  domain={[0, 500]} 
+                  tickCount={6} 
+                  allowDecimals={false} 
+                  interval={0}
+                  axisLine={false} 
+                  tickLine={false} 
+                />
+                
                 <Tooltip cursor={{ fill: '#f3f4f6' }} />
                 <Bar dataKey="visits" fill="#1B764C" radius={[4, 4, 0, 0]} />
               </BarChart>

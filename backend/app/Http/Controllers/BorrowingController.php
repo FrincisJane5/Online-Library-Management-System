@@ -92,23 +92,39 @@ class BorrowingController extends Controller
 
     public function fines()
     {
+        $fineRate = (float) (\App\Models\LibrarySetting::first()?->fine_rate ?? 5);
+
         $records = BorrowingRecord::latest()->get()
-            ->map(fn($r) => [
-                'id'               => $r->id,
-                'studentName'      => $r->student_name,
-                'studentEmail'     => $r->email,
-                'callNumber'       => $r->call_number,
-                'bookTitle'        => $r->book_title,
-                'dateBorrowed'     => $r->borrow_date,
-                'dueDate'          => $r->due_date,
-                'daysOverdue'      => max(0, Carbon::parse($r->due_date)->diffInDays(Carbon::today(), false)),
-                'fineAmount'       => (float) $r->fine_amount,
-                'status'           => $r->fine_status,
-                'action'           => $r->action,
-                'lastNotification' => $r->last_notification_at
-                    ? Carbon::parse($r->last_notification_at)->format('Y-m-d H:i')
-                    : 'Never',
-            ])
+            ->map(function ($r) use ($fineRate) {
+                $daysOverdue = max(0, Carbon::parse($r->due_date)->diffInDays(Carbon::today(), false));
+
+                // For still-borrowed overdue books, compute the running fine automatically
+                $fineAmount = $r->status === 'borrowed' && $daysOverdue > 0
+                    ? $daysOverdue * $fineRate
+                    : (float) $r->fine_amount;
+
+                // Persist the auto-calculated fine so it stays up to date
+                if ($r->status === 'borrowed' && $daysOverdue > 0 && $fineAmount !== (float) $r->fine_amount) {
+                    $r->update(['fine_amount' => $fineAmount, 'fine_status' => 'unpaid']);
+                }
+
+                return [
+                    'id'               => $r->id,
+                    'studentName'      => $r->student_name,
+                    'studentEmail'     => $r->email,
+                    'callNumber'       => $r->call_number,
+                    'bookTitle'        => $r->book_title,
+                    'dateBorrowed'     => $r->borrow_date,
+                    'dueDate'          => $r->due_date,
+                    'daysOverdue'      => $daysOverdue,
+                    'fineAmount'       => $fineAmount,
+                    'status'           => $r->fine_status,
+                    'action'           => $r->action,
+                    'lastNotification' => $r->last_notification_at
+                        ? Carbon::parse($r->last_notification_at)->format('Y-m-d H:i')
+                        : 'Never',
+                ];
+            })
             ->filter(fn($r) => $r['daysOverdue'] > 0 || $r['fineAmount'] > 0)
             ->values();
 

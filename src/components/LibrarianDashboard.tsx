@@ -105,16 +105,23 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
           <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
             <h3 className="text-[#4B4C58] mb-4">Library Visits (Monday to Saturday)</h3>
 
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={visitData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="visits" fill="#1B764C" />
-              </BarChart>
-            </ResponsiveContainer>
-
+           <ResponsiveContainer width="100%" height={300}>
+  <BarChart data={visitData}>
+    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+    <XAxis dataKey="day" />
+    
+    {/* Updated YAxis */}
+    <YAxis 
+      domain={[0, 500]} 
+      tickCount={6} 
+      allowDecimals={false} 
+      interval={0}
+    />
+    
+    <Tooltip cursor={{fill: '#f5f6f5'}} />
+    <Bar dataKey="visits" fill="#1B764C" radius={[4, 4, 0, 0]} />
+  </BarChart>
+</ResponsiveContainer>
           </div>
 
           {/* 🕒 Activity */}
