@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Search, Send, Check } from 'lucide-react';
+import { Search, Send, Check, RotateCcw } from 'lucide-react';
 import api from '../api/axios';
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
@@ -15,6 +15,7 @@ interface FineRecord {
   id: number;
   studentName: string;
   studentEmail: string;
+  studentPhone: string | null;
   callNumber: string | null;
   bookTitle: string;
   dateBorrowed: string;
@@ -89,6 +90,15 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
     }
   };
 
+  const markUnpaid = async (id: number) => {
+    try {
+      await api.patch(`/fines/${id}/unpay`);
+      await fetchFines();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to mark fine as unpaid.');
+    }
+  };
+
   const getPenaltyInfo = (fine: FineRecord) => {
     if (fine.action && PENALTY_LABEL[fine.action]) return PENALTY_LABEL[fine.action];
     return { label: 'Overdue', color: 'bg-orange-100 text-orange-800 border-orange-300', desc: `${fine.daysOverdue} day(s) overdue` };
@@ -145,6 +155,8 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-5 py-3 text-left text-slate-700">Student</th>
+                  <th className="px-5 py-3 text-left text-slate-700">Email</th>
+                  <th className="px-5 py-3 text-left text-slate-700">Phone</th>
                   <th className="px-5 py-3 text-left text-slate-700">Call No.</th>
                   <th className="px-5 py-3 text-left text-slate-700">Book Title</th>
                   <th className="px-5 py-3 text-left text-slate-700">Penalty Type</th>
@@ -163,6 +175,8 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
                   return (
                     <tr key={fine.id} className="hover:bg-slate-50">
                       <td className="px-5 py-4 font-medium text-slate-900">{fine.studentName}</td>
+                      <td className="px-5 py-4 text-slate-600 text-xs">{fine.studentEmail || '—'}</td>
+                      <td className="px-5 py-4 text-slate-600 text-xs">{fine.studentPhone || '—'}</td>
                       <td className="px-5 py-4 font-mono text-xs text-slate-600">{fine.callNumber ?? '—'}</td>
                       <td className="px-5 py-4 text-slate-700">{fine.bookTitle}</td>
                       <td className="px-5 py-4">
@@ -193,6 +207,12 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
                                 Mark Paid
                               </button>
                             </>
+                          )}
+                          {!isUnpaid(fine.status) && (
+                            <button onClick={() => markUnpaid(fine.id)}
+                              className="flex items-center gap-1 px-2 py-1 text-orange-600 border border-orange-600 hover:bg-orange-50 rounded transition-colors text-xs">
+                              <RotateCcw className="w-3 h-3" /> Mark Unpaid
+                            </button>
                           )}
                         </div>
                       </td>

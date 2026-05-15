@@ -112,6 +112,7 @@ class BorrowingController extends Controller
                     'id'               => $r->id,
                     'studentName'      => $r->student_name,
                     'studentEmail'     => $r->email,
+                    'studentPhone'     => $r->contact_number,
                     'callNumber'       => $r->call_number,
                     'bookTitle'        => $r->book_title,
                     'dateBorrowed'     => $r->borrow_date,
@@ -141,6 +142,18 @@ class BorrowingController extends Controller
             'user_role'   => $request->header('X-User-Role', 'staff'),
         ]);
         return response()->json(['message' => 'Fine marked as paid']);
+    }
+
+    public function markUnpaid(Request $request, BorrowingRecord $borrowing)
+    {
+        $borrowing->update(['fine_status' => 'unpaid']);
+        ActivityLog::create([
+            'action'      => 'Fine',
+            'description' => "Fine marked as unpaid for {$borrowing->student_name}",
+            'user_name'   => $request->header('X-User-Name', 'Staff'),
+            'user_role'   => $request->header('X-User-Role', 'staff'),
+        ]);
+        return response()->json(['message' => 'Fine marked as unpaid']);
     }
 
     public function sendReminder(Request $request, BorrowingRecord $borrowing)
@@ -203,6 +216,7 @@ class BorrowingController extends Controller
                     $sent++;
                 } catch (\Throwable) {}
             }
+
             $record->update(['last_notification_at' => now()]);
 
             \App\Models\NotificationLog::create([

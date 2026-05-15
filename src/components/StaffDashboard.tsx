@@ -106,7 +106,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
                 
                 {/* YAxis Configured for 0-500 with 100 increments */}
                 <YAxis 
-                  domain={[0, 500]} 
+                  domain={[0, 50]} 
                   tickCount={6} 
                   allowDecimals={false} 
                   interval={0}

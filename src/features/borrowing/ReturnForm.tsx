@@ -48,6 +48,8 @@ export default function ReturnForm({ records, onSuccess, onError }: Props) {
 
   const DETAIL_ROWS = matched ? [
     ['Student Name', matched.student_name],
+    ['Email', matched.email ?? '—'],
+    ['Phone', matched.contact_number ?? '—'],
     ['Call Number', matched.call_number ?? '—'],
     ['Book Title', matched.book_title],
     ['Date Borrowed', matched.borrow_date],

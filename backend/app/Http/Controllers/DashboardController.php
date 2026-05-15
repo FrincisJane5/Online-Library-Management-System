@@ -30,7 +30,9 @@ class DashboardController extends Controller
         });
 
         // 📦 Stats
-        $totalStudents = \App\Models\Student::count();
+        $totalStudents = Attendance::whereBetween('created_at', [$monday->copy()->startOfDay(), $saturday->copy()->endOfDay()])
+            ->distinct('id_number')
+            ->count('id_number');
         $totalBooks    = Book::count();
         $totalBorrowed = BorrowingRecord::where('status', 'borrowed')->count();
         $totalFines    = (float) BorrowingRecord::where('fine_status', 'Unpaid')->sum('fine_amount');

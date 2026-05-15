@@ -42,6 +42,7 @@ Route::middleware([])->group(function () {
     Route::get('/fines',                    [BorrowingController::class, 'fines']);
     Route::post('/fines/reminders',         [BorrowingController::class, 'sendReminders']);
     Route::patch('/fines/{borrowing}/pay',  [BorrowingController::class, 'markPaid']);
+    Route::patch('/fines/{borrowing}/unpay',[BorrowingController::class, 'markUnpaid']);
     Route::post('/fines/{borrowing}/remind',[BorrowingController::class, 'sendReminder']);
 
     // Attendance management (read)

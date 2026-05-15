@@ -248,7 +248,7 @@ export default function Settings({ user, onLogout }: SettingsProps) {
             <h3 className="text-blue-900 mb-2">System Information</h3>
             <div className="space-y-2 text-blue-700">
               <p>Version: 1.0.0</p>
-              <p>Last Updated: February 10, 2025</p>
+              <p>Last Updated: February 10, 2026</p>
               <p>Legacy College of Compostela - Library Management System</p>
             </div>
           </div>
@@ -328,11 +328,17 @@ export default function Settings({ user, onLogout }: SettingsProps) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Duration (Years) <span className="text-red-500">*</span></label>
-                  <select value={progForm.total_years} onChange={e => setProgForm(f => ({ ...f, total_years: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm">
-                    {[1,2,3,4,5,6].map(y => <option key={y} value={y}>{y} Year{y > 1 ? 's' : ''}</option>)}
-                  </select>
-                  <p className="text-slate-400 text-xs mt-1">Year levels (1st–{['','1st','2nd','3rd','4th','5th','6th'][progForm.total_years]} Year) will be auto-generated.</p>
+                  <input
+                    type="number"
+                    min="1"
+                    value={progForm.total_years}
+                    onChange={e => {
+                      const val = Math.max(1, Number(e.target.value));
+                      setProgForm(f => ({ ...f, total_years: val }));
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                  />
+                  <p className="text-slate-400 text-xs mt-1">Year levels will be auto-generated based on the number of years.</p>
                 </div>
                 {progError && <p className="text-red-600 text-sm">{progError}</p>}
                 <div className="flex gap-3 pt-2">

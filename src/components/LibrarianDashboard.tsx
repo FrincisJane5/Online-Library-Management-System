@@ -112,7 +112,7 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
     
     {/* Updated YAxis */}
     <YAxis 
-      domain={[0, 500]} 
+      domain={[0, 50]} 
       tickCount={6} 
       allowDecimals={false} 
       interval={0}

@@ -26,7 +26,7 @@ class ProgramController extends Controller
         $validated = $request->validate([
             'code'        => 'required|string|max:20|unique:programs,code',
             'name'        => 'required|string|max:255',
-            'total_years' => 'required|integer|min:1|max:6',
+            'total_years' => 'required|integer|min:1',
         ]);
         return response()->json(Program::create($validated), 201);
     }
@@ -36,7 +36,7 @@ class ProgramController extends Controller
         $validated = $request->validate([
             'code'        => 'required|string|max:20|unique:programs,code,' . $program->id,
             'name'        => 'required|string|max:255',
-            'total_years' => 'required|integer|min:1|max:6',
+            'total_years' => 'required|integer|min:1',
         ]);
         $program->update($validated);
         return response()->json($program->fresh());
