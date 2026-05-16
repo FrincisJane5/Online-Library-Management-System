@@ -41,6 +41,8 @@ export interface BorrowingRecord {
   action?: 'damaged' | 'lost'; // Optional flag set when returning a damaged or lost book
   fine_amount: number;          // Calculated fine in pesos
   fine_status: 'paid' | 'unpaid'; // Whether the fine has been settled
+  academic_year?: string;       // e.g. "2024-2025"
+  semester?: string;            // e.g. "1st Semester"
 }
 
 // ─── Attendance ───────────────────────────────────────────────────────────────

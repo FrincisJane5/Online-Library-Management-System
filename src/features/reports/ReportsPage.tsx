@@ -3,13 +3,14 @@ import { Download, Printer } from 'lucide-react';
 import { reportService } from '../../services/reportService';
 import { exportCSV } from '../../utils';
 
-type ReportType = 'attendance' | 'borrowing' | 'inventory' | 'overdue';
+type ReportType = 'attendance' | 'borrowing' | 'inventory' | 'overdue' | 'department-attendance';
 
 const TABS: { key: ReportType; label: string }[] = [
-  { key: 'attendance', label: 'Attendance' },
-  { key: 'borrowing',  label: 'Borrowing & Returning' },
-  { key: 'inventory',  label: 'Inventory Status' },
-  { key: 'overdue',    label: 'Overdue & Fines' },
+  { key: 'attendance',            label: 'Attendance' },
+  { key: 'borrowing',             label: 'Borrowing & Returning' },
+  { key: 'inventory',             label: 'Inventory Status' },
+  { key: 'overdue',               label: 'Overdue & Fines' },
+  { key: 'department-attendance', label: 'Department Attendance' },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -41,10 +42,11 @@ export default function ReportsPage() {
     try {
       const range = { start: start || undefined, end: end || undefined };
       const fetchers: Record<ReportType, () => Promise<any>> = {
-        attendance: () => reportService.attendance(range),
-        borrowing:  () => reportService.borrowing(range),
-        inventory:  () => reportService.inventory(),
-        overdue:    () => reportService.overdue(range),
+        attendance:             () => reportService.attendance(range),
+        borrowing:              () => reportService.borrowing(range),
+        inventory:              () => reportService.inventory(),
+        overdue:                () => reportService.overdue(range),
+        'department-attendance': () => reportService.departmentAttendance(range),
       };
       setData(await fetchers[active]());
     } catch { setData([]); }
@@ -166,6 +168,19 @@ export default function ReportsPage() {
                   <td className="px-6 py-4">₱{Number(r.fineAmount).toFixed(2)}</td>
                   <td className="px-6 py-4"><Badge value={r.fineStatus} /></td>
                   <td className="px-6 py-4">{r.action ? <Badge value={r.action} /> : '-'}</td>
+                </tr>
+              ))}
+            </Table>
+          )}
+
+          {/* Department Attendance */}
+          {!loading && active === 'department-attendance' && data.length > 0 && (
+            <Table headers={['Department / Course', 'Total Visits', 'Unique Students']}>
+              {data.map((r, i) => (
+                <tr key={i} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 font-medium text-slate-900">{r.course ?? r.department ?? '—'}</td>
+                  <td className="px-6 py-4 text-center font-semibold text-teal-700">{r.total_visits ?? r.totalVisits ?? 0}</td>
+                  <td className="px-6 py-4 text-center text-slate-600">{r.unique_students ?? r.uniqueStudents ?? '—'}</td>
                 </tr>
               ))}
             </Table>

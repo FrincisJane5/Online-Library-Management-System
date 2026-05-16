@@ -5,6 +5,9 @@ import { bookService } from '../../services/bookService';
 import { useDebounce } from '../../hooks/useDebounce';
 import { today } from '../../utils';
 import type { Book } from '../../types';
+import api from '../../api/axios';
+
+interface Program { id: number; code: string; name: string; total_years: number; }
 
 interface Props {
   onSuccess: (msg: string) => void;
@@ -15,14 +18,20 @@ const EMPTY_FORM = {
   studentName: '', email: '', contactNumber: '',
   course: '', year: '',
   dateBorrowed: today(), dueDate: '',
+  academicYear: '', semester: '',
 };
 
 export default function BorrowForm({ onSuccess, onError }: Props) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [bookQuery, setBookQuery] = useState('');
   const [bookResults, setBookResults] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const debouncedQuery = useDebounce(bookQuery);
+
+  useEffect(() => {
+    api.get('/programs').then(r => setPrograms(r.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!debouncedQuery.trim() || selectedBook) { setBookResults([]); return; }
@@ -49,6 +58,8 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         call_number:    selectedBook.call_number ?? undefined,
         borrow_date:    form.dateBorrowed,
         due_date:       form.dueDate,
+        academic_year:  form.academicYear || undefined,
+        semester:       form.semester || undefined,
       });
       setForm(EMPTY_FORM);
       setSelectedBook(null);
@@ -80,10 +91,26 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input {...field('course')} placeholder="Course (e.g. BSIT)" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
-            <input {...field('year')} placeholder="Year (e.g. 2nd Year)" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <select value={form.course}
+              onChange={e => setForm(f => ({ ...f, course: e.target.value, year: '' }))} required
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <option value="">Select Course</option>
+              {programs.map(p => (
+                <option key={p.id} value={p.code}>{p.code} – {p.name}</option>
+              ))}
+            </select>
+            <select {...field('year')} required
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <option value="">Select Year</option>
+              {(() => {
+                const prog = programs.find(p => p.code === form.course);
+                const years = prog ? prog.total_years : 4;
+                return Array.from({ length: years }, (_, i) => {
+                  const label = ['1st', '2nd', '3rd', '4th', '5th'][i] ?? `${i + 1}th`;
+                  return <option key={i} value={`${label} Year`}>{label} Year</option>;
+                });
+              })()}
+            </select>
           </div>
         </div>
       </div>
@@ -135,6 +162,26 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
           <label className="block text-slate-700 mb-2">Due Date</label>
           <input type="date" {...field('dueDate')} required
             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+      </div>
+
+      {/* Academic Year & Semester */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-slate-700 mb-2">Academic Year</label>
+          <input {...field('academicYear')} placeholder="e.g. 2024-2025"
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+        <div>
+          <label className="block text-slate-700 mb-2">Semester</label>
+          <select value={form.semester}
+            onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="">Select Semester</option>
+            <option value="1st Semester">1st Semester</option>
+            <option value="2nd Semester">2nd Semester</option>
+            <option value="Summer">Summer</option>
+          </select>
         </div>
       </div>
 
