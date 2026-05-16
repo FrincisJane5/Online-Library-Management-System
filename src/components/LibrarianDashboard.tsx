@@ -13,12 +13,12 @@ interface DashboardProps {
 
 export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
   const [dashboard, setDashboard] = useState<any>(null);
+  const [programs, setPrograms]   = useState<{ code: string }[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/dashboard")
-      .then(res => setDashboard(res.data))
-      .catch(err => console.error(err));
+    api.get("/dashboard").then(res => setDashboard(res.data)).catch(err => console.error(err));
+    api.get("/programs").then(res => setPrograms(res.data)).catch(console.error);
   }, []);
 
   if (!dashboard) {
@@ -35,7 +35,10 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
     visits: item.total
   }));
 
-  const recentActivities = dashboard.recent_activity;
+  const deptData = programs.map(p => {
+    const found = (dashboard.visits_by_department ?? []).find((d: any) => d.course === p.code);
+    return { course: p.code, visits: found ? found.visits : 0 };
+  });
 
   return (
     <Layout user={user} onLogout={onLogout}>
@@ -98,53 +101,35 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
 
         </div>
 
-        {/* Charts + Activity */}
+        {/* Charts + Department */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* 📊 Chart */}
+          {/* 📊 Weekly visits chart */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
             <h3 className="text-[#4B4C58] mb-4">Library Visits (Monday to Saturday)</h3>
-
-           <ResponsiveContainer width="100%" height={300}>
-  <BarChart data={visitData}>
-    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-    <XAxis dataKey="day" />
-    
-    {/* Updated YAxis */}
-    <YAxis 
-      domain={[0, 50]} 
-      tickCount={6} 
-      allowDecimals={false} 
-      interval={0}
-    />
-    
-    <Tooltip cursor={{fill: '#f5f6f5'}} />
-    <Bar dataKey="visits" fill="#1B764C" radius={[4, 4, 0, 0]} />
-  </BarChart>
-</ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={visitData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="day" />
+                <YAxis domain={[0, 50]} tickCount={6} allowDecimals={false} interval={0} />
+                <Tooltip cursor={{fill: '#f5f6f5'}} />
+                <Bar dataKey="visits" fill="#1B764C" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
-          {/* 🕒 Activity */}
+          {/* 📊 Visits by Department */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-            <h3 className="text-[#4B4C58] mb-4">Recent Activity</h3>
-
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-
-              {recentActivities.length === 0 ? (
-                <p className="text-[#9DA4A6]">No activity yet</p>
-              ) : (
-                recentActivities.map((activity: any, index: number) => (
-                  <div key={index} className="pb-3 border-b border-[#9DA4A6]/30 last:border-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <span className="text-[#4B4C58]">{activity.action}</span>
-                      <span className="text-[#9DA4A6] text-xs">{activity.created_at}</span>
-                    </div>
-                    <p className="text-[#9DA4A6]">{activity.description}</p>
-                  </div>
-                ))
-              )}
-
-            </div>
+            <h3 className="text-[#4B4C58] mb-4">Visits by Department (Today)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={deptData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="course" />
+                <YAxis allowDecimals={false} />
+                <Tooltip cursor={{fill: '#f5f6f5'}} />
+                <Bar dataKey="visits" fill="#016937" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
         </div>

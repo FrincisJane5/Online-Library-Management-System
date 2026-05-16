@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/login',           [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);
 Route::post('/attendance',           [AttendanceController::class, 'store']);
+Route::get('/attendance/check-id',   [AttendanceController::class, 'checkId']);
+Route::get('/attendance/lookup',     [AttendanceController::class, 'lookup']);
 Route::get('/programs',              [ProgramController::class, 'index']);
 Route::get('/network-url',           fn() => response()->json([
     'url' => 'http://' . gethostbyname(gethostname()) . ':3000',

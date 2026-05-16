@@ -4,6 +4,7 @@ import { borrowingService } from '../../services/borrowingService';
 import { bookService } from '../../services/bookService';
 import { useDebounce } from '../../hooks/useDebounce';
 import { today } from '../../utils';
+import api from '../../api/axios';
 import type { Book } from '../../types';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const EMPTY_FORM = {
+  idNumber: '',
   studentName: '', email: '', contactNumber: '',
   course: '', year: '',
   dateBorrowed: today(), dueDate: '',
@@ -19,6 +21,7 @@ const EMPTY_FORM = {
 
 export default function BorrowForm({ onSuccess, onError }: Props) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'not_found'>('idle');
   const [bookQuery, setBookQuery] = useState('');
   const [bookResults, setBookResults] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -33,6 +36,30 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
     setSelectedBook(book);
     setBookQuery(book.title ?? book.call_number ?? '');
     setBookResults([]);
+  };
+
+  // Auto-fill borrower info from attendance record
+  const handleIdLookup = async () => {
+    const id = form.idNumber.trim();
+    if (!id) return;
+    try {
+      const res = await api.get(`/attendance/lookup?id_number=${encodeURIComponent(id)}`);
+      if (res.data.found) {
+        setForm(f => ({
+          ...f,
+          studentName:   res.data.name    ?? f.studentName,
+          email:         res.data.email   ?? f.email,
+          contactNumber: res.data.phone   ?? f.contactNumber,
+          course:        res.data.course  ?? f.course,
+          year:          res.data.year    ?? f.year,
+        }));
+        setLookupStatus('found');
+      } else {
+        setLookupStatus('not_found');
+      }
+    } catch {
+      setLookupStatus('idle');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,6 +80,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       setForm(EMPTY_FORM);
       setSelectedBook(null);
       setBookQuery('');
+      setLookupStatus('idle');
       onSuccess('Book successfully borrowed! A confirmation email has been sent to the student.');
     } catch (err: any) {
       onError(err);
@@ -64,6 +92,8 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
   });
 
+  const inputCls = "px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -71,19 +101,42 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       <div>
         <h3 className="text-slate-900 mb-4">Borrower Information</h3>
         <div className="space-y-3">
+
+          {/* ID Number lookup */}
+          <div>
+            <div className="flex gap-2">
+              <input
+                {...field('idNumber')}
+                placeholder="ID Number (auto-fill from attendance)"
+                onBlur={handleIdLookup}
+                className={`flex-1 ${inputCls}`}
+              />
+              <button type="button" onClick={handleIdLookup}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm transition-colors whitespace-nowrap">
+                Look Up
+              </button>
+            </div>
+            {lookupStatus === 'found' && (
+              <p className="text-green-600 text-xs mt-1">✅ Student info auto-filled from attendance record.</p>
+            )}
+            {lookupStatus === 'not_found' && (
+              <p className="text-amber-500 text-xs mt-1">⚠️ No attendance record found. Please fill in manually.</p>
+            )}
+          </div>
+
           <input {...field('studentName')} placeholder="Student Full Name" required
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            className={`w-full ${inputCls}`} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input {...field('email')} type="email" placeholder="Email Address" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className={inputCls} />
             <input {...field('contactNumber')} placeholder="Contact Number" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className={inputCls} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input {...field('course')} placeholder="Course (e.g. BSIT)" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className={inputCls} />
             <input {...field('year')} placeholder="Year (e.g. 2nd Year)" required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className={inputCls} />
           </div>
         </div>
       </div>
@@ -96,7 +149,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
           <input value={bookQuery}
             onChange={e => { setBookQuery(e.target.value); setSelectedBook(null); }}
             placeholder="Search by title, call number, or author..."
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            className={`w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`} />
         </div>
 
         {bookResults.length > 0 && (
@@ -129,12 +182,12 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         <div>
           <label className="block text-slate-700 mb-2">Date Borrowed</label>
           <input type="date" {...field('dateBorrowed')} required
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="block text-slate-700 mb-2">Due Date</label>
           <input type="date" {...field('dueDate')} required
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            className={`w-full ${inputCls}`} />
         </div>
       </div>
 

@@ -25,27 +25,35 @@ interface AttendanceRecord {
   created_at: string;
 }
 
-const COURSES     = ['BSIT', 'BSBA', 'BSED', 'BSCRIM'];
 const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+const PURPOSES    = [
+  'Research', 'Borrowing / Returning Books', 'Reading / Studying',
+  'Internet / Computer Use', 'Group Study', 'Thesis / Capstone Work',
+  'Others',
+];
 
 export default function AttendanceManagement({ user, onLogout }: AttendanceManagementProps) {
   const [data, setData]           = useState<AttendanceRecord[]>([]);
+  const [programs, setPrograms]   = useState<{ code: string }[]>([]);
   const [search, setSearch]       = useState('');
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
+  const [purpose, setPurpose]     = useState('');
   const [qrUrl, setQrUrl]         = useState(window.location.origin + '/LccLibraryAttendance');
   const qrRef                     = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api.get('/attendance').then(r => setData(r.data)).catch(console.error);
+    api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
     api.get('/network-url').then(r => setQrUrl(r.data.url + '/LccLibraryAttendance')).catch(() => {});
   }, []);
 
   const filtered = useMemo(() => data.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) &&
-    (!course || item.course === course) &&
-    (!year   || item.year   === year)
-  ), [data, search, course, year]);
+    (!course  || item.course   === course) &&
+    (!year    || item.year     === year) &&
+    (!purpose || item.purpose  === purpose)
+  ), [data, search, course, year, purpose]);
 
   const { paged, page, totalPages, setPage, reset, total } = usePagination(filtered);
   // Reset to page 1 whenever filters change
@@ -80,20 +88,22 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   const handleExport = () => exportCSV(
     filtered.map(r => ({
       Date: r.created_at, ID: r.id_number ?? '', Name: r.name,
+      Email: r.email ?? '', Phone: r.phone ?? '',
       Course: r.course, Year: r.year, Purpose: r.purpose,
     })),
     'attendance.csv'
   );
 
   const handlePrint = () => {
-    const win = window.open('', '', 'width=900,height=650');
+    const win = window.open('', '', 'width=1000,height=650');
     win?.document.write(`
       <html><head><title>Attendance Report</title></head><body>
       <h2>Library Attendance Report</h2>
       <table border="1" cellpadding="8" cellspacing="0">
-        <tr><th>Date</th><th>ID</th><th>Name</th><th>Course</th><th>Year</th><th>Purpose</th></tr>
+        <tr><th>Date</th><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Course</th><th>Year</th><th>Purpose</th></tr>
         ${filtered.map(r => `<tr>
           <td>${r.created_at}</td><td>${r.id_number ?? ''}</td><td>${r.name}</td>
+          <td>${r.email ?? ''}</td><td>${r.phone ?? ''}</td>
           <td>${r.course}</td><td>${r.year}</td><td>${r.purpose}</td>
         </tr>`).join('')}
       </table></body></html>
@@ -130,7 +140,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
 
         {/* Filters */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
             <div className="lg:col-span-2">
               <label className="block mb-2 text-sm">Search by Name</label>
               <div className="relative">
@@ -148,7 +158,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               <label className="block mb-2 text-sm">Course</label>
               <select value={course} onChange={e => setCourse(e.target.value)} className="w-full p-2 border rounded-lg">
                 <option value="">All</option>
-                {COURSES.map(c => <option key={c}>{c}</option>)}
+                {programs.map(p => <option key={p.code} value={p.code}>{p.code}</option>)}
               </select>
             </div>
             <div>
@@ -156,6 +166,13 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               <select value={year} onChange={e => setYear(e.target.value)} className="w-full p-2 border rounded-lg">
                 <option value="">All</option>
                 {YEAR_LEVELS.map(y => <option key={y}>{y}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block mb-2 text-sm">Purpose</label>
+              <select value={purpose} onChange={e => setPurpose(e.target.value)} className="w-full p-2 border rounded-lg">
+                <option value="">All</option>
+                {PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
           </div>
@@ -175,19 +192,21 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
             <table className="w-full">
               <thead className="bg-gray-100">
                 <tr>
-                  {['Date & Time', 'ID Number', 'Student Name', 'Course', 'Year', 'Purpose'].map(h => (
+                  {['Date & Time', 'ID Number', 'Student Name', 'Email', 'Phone', 'Course', 'Year', 'Purpose'].map(h => (
                     <th key={h} className="p-3 text-left text-sm font-medium text-gray-700">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center p-6 text-gray-500">No records found</td></tr>
+                  <tr><td colSpan={8} className="text-center p-6 text-gray-500">No records found</td></tr>
                 ) : paged.map(item => (
                   <tr key={item.id} className="border-t hover:bg-gray-50">
                     <td className="p-3 text-sm">{item.created_at}</td>
                     <td className="p-3 text-sm">{item.id_number ?? '-'}</td>
                     <td className="p-3 text-sm">{item.name}</td>
+                    <td className="p-3 text-sm">{item.email ?? '-'}</td>
+                    <td className="p-3 text-sm">{item.phone ?? '-'}</td>
                     <td className="p-3 text-sm">{item.course}</td>
                     <td className="p-3 text-sm">{item.year}</td>
                     <td className="p-3 text-sm">{item.purpose}</td>

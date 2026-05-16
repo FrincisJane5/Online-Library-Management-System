@@ -46,13 +46,23 @@ class DashboardController extends Controller
             'created_at'  => $log->created_at?->format('Y-m-d H:i'),
         ]);
 
+        // 📊 Visits by department (today)
+        $byDept = Attendance::selectRaw('course, COUNT(*) as total')
+            ->whereDate('created_at', now()->toDateString())
+            ->whereNotNull('course')
+            ->groupBy('course')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn($r) => ['course' => $r->course, 'visits' => (int) $r->total]);
+
         return response()->json([
-            'attendance_chart' => $attendance,
+            'attendance_chart'     => $attendance,
+            'visits_by_department' => $byDept,
             'stats' => [
                 'students' => $totalStudents,
-                'books' => $totalBooks,
+                'books'    => $totalBooks,
                 'borrowed' => $totalBorrowed,
-                'fines' => $totalFines,
+                'fines'    => $totalFines,
             ],
             'recent_activity' => $activities
         ]);
