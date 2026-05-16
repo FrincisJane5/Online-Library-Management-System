@@ -124,10 +124,12 @@ export default function ReportsPage() {
           )}
 
           <div id="report-content">
+          {/* Attendance */}
           {!loading && active === 'attendance' && data.length > 0 && (
-            <Table headers={['Date', 'Time', 'ID Number', 'Name', 'Email', 'Phone', 'Course', 'Year', 'Purpose']}>
+            <Table headers={['No.', 'Date', 'Time', 'ID Number', 'Name', 'Email', 'Phone', 'Course', 'Year', 'Purpose']}>
               {data.map((r, i) => (
                 <tr key={i} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 text-slate-400 text-center">{i + 1}</td>
                   <td className="px-6 py-4">{r.date}</td>
                   <td className="px-6 py-4 text-slate-600">{r.time}</td>
                   <td className="px-6 py-4 text-slate-600">{r.id_number ?? '—'}</td>
@@ -144,9 +146,10 @@ export default function ReportsPage() {
 
           {/* Borrowing */}
           {!loading && active === 'borrowing' && data.length > 0 && (
-            <Table headers={['Date', 'Student', 'ID', 'Book', 'Call No.', 'Status', 'Action', 'Due Date', 'Returned']}>
+            <Table headers={['No.', 'Date', 'Student', 'ID', 'Book', 'Call No.', 'Status', 'Action', 'Due Date', 'Returned']}>
               {data.map((r, i) => (
                 <tr key={i} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 text-slate-400 text-center">{i + 1}</td>
                   <td className="px-6 py-4">{r.date}</td>
                   <td className="px-6 py-4">{r.student}</td>
                   <td className="px-6 py-4 text-slate-600">{r.idNumber}</td>
@@ -182,9 +185,10 @@ export default function ReportsPage() {
 
           {/* Overdue */}
           {!loading && active === 'overdue' && data.length > 0 && (
-            <Table headers={['Student', 'Book', 'Days Overdue', 'Fine', 'Fine Status', 'Action']}>
+            <Table headers={['No.', 'Student', 'Book', 'Days Overdue', 'Fine', 'Fine Status', 'Action']}>
               {data.map((r, i) => (
                 <tr key={i} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 text-slate-400 text-center">{i + 1}</td>
                   <td className="px-6 py-4">{r.student}</td>
                   <td className="px-6 py-4">{r.book}</td>
                   <td className="px-6 py-4 text-center text-red-700 font-medium">{r.daysOverdue}</td>

@@ -24,6 +24,13 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
     api.get('/programs').then(res => setPrograms(res.data)).catch(console.error);
   }, []);
 
+  const deptData = useMemo(() => {
+    const visitMap: Record<string, number> = {};
+    (dashboard?.visits_by_department ?? []).forEach((d: any) => { visitMap[d.course] = d.visits; });
+    const keys = programs.length > 0 ? programs.map(p => p.code) : Object.keys(visitMap);
+    return keys.map(code => ({ course: code, visits: visitMap[code] ?? 0 }));
+  }, [programs, dashboard]);
+
   if (error) {
     return (
       <Layout user={user} onLogout={onLogout}>
@@ -46,15 +53,6 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
     day: item.date,
     visits: item.total,
   }));
-
-  const deptData = useMemo(() => {
-    const visitMap: Record<string, number> = {};
-    (dashboard?.visits_by_department ?? []).forEach((d: any) => { visitMap[d.course] = d.visits; });
-    const keys = programs.length > 0
-      ? programs.map(p => p.code)
-      : Object.keys(visitMap);
-    return keys.map(code => ({ course: code, visits: visitMap[code] ?? 0 }));
-  }, [programs, dashboard]);
 
   const stats = dashboard.stats;
 
