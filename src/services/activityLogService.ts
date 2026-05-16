@@ -5,9 +5,11 @@ import type { ActivityLog } from '../types';
 
 // Optional filters for querying activity logs
 export interface LogFilters {
-  search?: string; // Free-text search across log fields
-  action?: string; // Filter by action type (e.g. "Book Added")
-  user?: string;   // Filter by the user who performed the action
+  search?: string;
+  action?: string;
+  user?: string;
+  date_from?: string; // Filter logs from this date (YYYY-MM-DD)
+  date_to?: string;   // Filter logs up to this date (YYYY-MM-DD)
 }
 
 // activityLogService — fetches admin activity logs

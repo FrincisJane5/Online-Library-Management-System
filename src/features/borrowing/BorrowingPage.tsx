@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { AlertTriangle, Check } from 'lucide-react';
 import { borrowingService } from '../../services/borrowingService';
-import { bookService } from '../../services/bookService';
-import { useDebounce } from '../../hooks/useDebounce';
 import { useApi } from '../../hooks/useApi';
-import { today } from '../../utils';
-import type { Book } from '../../types';
 import BorrowForm from './BorrowForm';
 import ReturnForm from './ReturnForm';
+import BorrowingDetails from './BorrowingDetails';
 
-type Tab = 'borrow' | 'return';
+type Tab = 'borrow' | 'return' | 'details';
 
 export default function BorrowingPage() {
   const [tab, setTab] = useState<Tab>('borrow');
@@ -38,7 +35,7 @@ export default function BorrowingPage() {
 
       <div className="bg-white rounded-lg shadow-sm border border-slate-200">
         <div className="border-b border-slate-200 flex">
-          {(['borrow', 'return'] as Tab[]).map(t => (
+          {(['borrow', 'return', 'details'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setError(''); setSuccess(''); }}
@@ -46,7 +43,7 @@ export default function BorrowingPage() {
                 tab === t ? 'border-b-2 border-teal-600 text-teal-600' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {t === 'borrow' ? 'Borrow Book' : 'Return Book'}
+              {t === 'borrow' ? 'Borrow Book' : t === 'return' ? 'Return Book' : 'Borrowing Details'}
             </button>
           ))}
         </div>
@@ -66,11 +63,9 @@ export default function BorrowingPage() {
             </div>
           )}
 
-          {tab === 'borrow' ? (
-            <BorrowForm onSuccess={handleSuccess} onError={handleError} />
-          ) : (
-            <ReturnForm records={records ?? []} onSuccess={handleSuccess} onError={handleError} />
-          )}
+          {tab === 'borrow' && <BorrowForm onSuccess={handleSuccess} onError={handleError} />}
+          {tab === 'return' && <ReturnForm records={records ?? []} onSuccess={handleSuccess} onError={handleError} />}
+          {tab === 'details' && <BorrowingDetails records={records ?? []} />}
         </div>
       </div>
     </div>

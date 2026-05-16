@@ -24,4 +24,8 @@ export const reportService = {
   // GET /api/reports/overdue — overdue books report, optionally filtered by date range
   overdue: (range: DateRange = {}) =>
     api.get('/reports/overdue', { params: range }).then(r => r.data),
+
+  // GET /api/reports/department-attendance — attendance grouped by course/department
+  departmentAttendance: (range: DateRange = {}) =>
+    api.get('/reports/department-attendance', { params: range }).then(r => r.data),
 };

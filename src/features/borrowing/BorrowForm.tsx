@@ -7,6 +7,8 @@ import { today } from '../../utils';
 import api from '../../api/axios';
 import type { Book } from '../../types';
 
+interface Program { id: number; code: string; name: string; total_years: number; year_levels: string[]; }
+
 interface Props {
   onSuccess: (msg: string) => void;
   onError: (err: any) => void;
@@ -22,10 +24,15 @@ const EMPTY_FORM = {
 export default function BorrowForm({ onSuccess, onError }: Props) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'not_found'>('idle');
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [bookQuery, setBookQuery] = useState('');
   const [bookResults, setBookResults] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const debouncedQuery = useDebounce(bookQuery);
+
+  useEffect(() => {
+    api.get('/programs').then(r => setPrograms(r.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!debouncedQuery.trim() || selectedBook) { setBookResults([]); return; }
@@ -38,7 +45,6 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
     setBookResults([]);
   };
 
-  // Auto-fill borrower info from attendance record
   const handleIdLookup = async () => {
     const id = form.idNumber.trim();
     if (!id) return;
@@ -47,11 +53,11 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       if (res.data.found) {
         setForm(f => ({
           ...f,
-          studentName:   res.data.name    ?? f.studentName,
-          email:         res.data.email   ?? f.email,
-          contactNumber: res.data.phone   ?? f.contactNumber,
-          course:        res.data.course  ?? f.course,
-          year:          res.data.year    ?? f.year,
+          studentName:   res.data.name   ?? f.studentName,
+          email:         res.data.email  ?? f.email,
+          contactNumber: res.data.phone  ?? f.contactNumber,
+          course:        res.data.course ?? f.course,
+          year:          res.data.year   ?? f.year,
         }));
         setLookupStatus('found');
       } else {
@@ -68,6 +74,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
     try {
       await borrowingService.borrow({
         student_name:   form.studentName,
+        id_number:      form.idNumber || undefined,
         email:          form.email || undefined,
         contact_number: form.contactNumber || undefined,
         course:         form.course || undefined,
@@ -89,10 +96,12 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
 
   const field = (key: keyof typeof form) => ({
     value: form[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm(f => ({ ...f, [key]: e.target.value })),
   });
 
   const inputCls = "px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500";
+  const selectedProgram = programs.find(p => p.code === form.course);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -133,10 +142,21 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
               className={inputCls} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input {...field('course')} placeholder="Course (e.g. BSIT)" required
-              className={inputCls} />
-            <input {...field('year')} placeholder="Year (e.g. 2nd Year)" required
-              className={inputCls} />
+            <select value={form.course}
+              onChange={e => setForm(f => ({ ...f, course: e.target.value, year: '' }))}
+              required
+              className={inputCls}>
+              <option value="">Select Course</option>
+              {programs.map(p => <option key={p.id} value={p.code}>{p.code} — {p.name}</option>)}
+            </select>
+            <select value={form.year}
+              onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
+              required
+              disabled={!selectedProgram}
+              className={`${inputCls} disabled:opacity-50`}>
+              <option value="">Select Year Level</option>
+              {(selectedProgram?.year_levels ?? []).map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
           </div>
         </div>
       </div>
@@ -149,7 +169,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
           <input value={bookQuery}
             onChange={e => { setBookQuery(e.target.value); setSelectedBook(null); }}
             placeholder="Search by title, call number, or author..."
-            className={`w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500`} />
+            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
         </div>
 
         {bookResults.length > 0 && (
@@ -181,13 +201,11 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-slate-700 mb-2">Date Borrowed</label>
-          <input type="date" {...field('dateBorrowed')} required
-            className={`w-full ${inputCls}`} />
+          <input type="date" {...field('dateBorrowed')} required className={`w-full ${inputCls}`} />
         </div>
         <div>
           <label className="block text-slate-700 mb-2">Due Date</label>
-          <input type="date" {...field('dueDate')} required
-            className={`w-full ${inputCls}`} />
+          <input type="date" {...field('dueDate')} required className={`w-full ${inputCls}`} />
         </div>
       </div>
 

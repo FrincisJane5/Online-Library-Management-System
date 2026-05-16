@@ -15,6 +15,8 @@ export interface BorrowPayload {
   call_number?: string;    // Optional call number
   borrow_date: string;     // Date borrowed (YYYY-MM-DD)
   due_date: string;        // Due date (YYYY-MM-DD)
+  academic_year?: string;  // e.g. "2024-2025"
+  semester?: string;       // e.g. "1st Semester"
 }
 
 // Shape of the data sent when returning a book

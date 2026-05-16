@@ -31,19 +31,25 @@ function Badge({ value, colorMap }: { value: string; colorMap: Record<string, st
 }
 
 export default function ActivityLogsPage() {
-  const [search, setSearch]   = useState('');
-  const [action, setAction]   = useState('');
-  const [logs, setLogs]       = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [search, setSearch]     = useState('');
+  const [action, setAction]     = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo]     = useState('');
+  const [logs, setLogs]         = useState<ActivityLog[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
 
   const { paged, page, totalPages, setPage, total } = usePagination(logs);
 
-  const fetchLogs = async (s = search, a = action) => {
+  const fetchLogs = async (s = search, a = action, df = dateFrom, dt = dateTo) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await activityLogService.getAll({ search: s, action: a });
+      const data = await activityLogService.getAll({
+        search: s, action: a,
+        date_from: df || undefined,
+        date_to: dt || undefined,
+      });
       setLogs(data);
     } catch (err: any) {
       console.error(err);
@@ -61,7 +67,7 @@ export default function ActivityLogsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchLogs(search, action);
+    fetchLogs(search, action, dateFrom, dateTo);
   };
 
   const uniqueActions = [...new Set(logs.map(l => l.action))];
@@ -92,6 +98,16 @@ export default function ActivityLogsPage() {
               <option value="">All Actions</option>
               {uniqueActions.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="block text-slate-700 mb-2 text-sm">From</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div>
+            <label className="block text-slate-700 mb-2 text-sm">To</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
           </div>
           <button type="submit"
             className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
