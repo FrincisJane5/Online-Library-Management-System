@@ -13,7 +13,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $monday = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $monday = Carbon::now('Asia/Manila')->startOfWeek(Carbon::MONDAY);
         $saturday = (clone $monday)->addDays(5);
         $attendanceRaw = Attendance::selectRaw('DATE(created_at) as date, COUNT(*) as total')
             ->whereBetween('created_at', [$monday->copy()->startOfDay(), $saturday->copy()->endOfDay()])
@@ -43,12 +43,12 @@ class DashboardController extends Controller
             'action'      => $log->action,
             'description' => $log->description,
             'user_name'   => $log->user_name,
-            'created_at'  => $log->created_at?->format('Y-m-d H:i'),
+            'created_at'  => $log->created_at?->setTimezone('Asia/Manila')->format('Y-m-d H:i'),
         ]);
 
         // 📊 Visits by department (today)
         $byDept = Attendance::selectRaw('course, COUNT(*) as total')
-            ->whereDate('created_at', now()->toDateString())
+            ->whereDate('created_at', now('Asia/Manila')->toDateString())
             ->whereNotNull('course')
             ->groupBy('course')
             ->orderByDesc('total')

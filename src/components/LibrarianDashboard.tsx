@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout from './Layout';
 import { User } from '../types';
 import { BookOpen, TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
@@ -35,10 +35,15 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
     visits: item.total
   }));
 
-  const deptData = programs.map(p => {
-    const found = (dashboard.visits_by_department ?? []).find((d: any) => d.course === p.code);
-    return { course: p.code, visits: found ? found.visits : 0 };
-  });
+  const deptData = useMemo(() => {
+    const visitMap: Record<string, number> = {};
+    (dashboard?.visits_by_department ?? []).forEach((d: any) => { visitMap[d.course] = d.visits; });
+    // Use programs list if loaded, otherwise fall back to whatever came from the API
+    const keys = programs.length > 0
+      ? programs.map(p => p.code)
+      : Object.keys(visitMap);
+    return keys.map(code => ({ course: code, visits: visitMap[code] ?? 0 }));
+  }, [programs, dashboard]);
 
   return (
     <Layout user={user} onLogout={onLogout}>

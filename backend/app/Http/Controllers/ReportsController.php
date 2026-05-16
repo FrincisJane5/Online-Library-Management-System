@@ -22,9 +22,12 @@ class ReportsController extends Controller
         }
 
         return response()->json($query->get()->map(fn($a) => [
-            'date'    => Carbon::parse($a->created_at)->format('Y-m-d'),
-            'time'    => Carbon::parse($a->created_at)->format('H:i'),
+            'date'    => Carbon::parse($a->created_at)->setTimezone('Asia/Manila')->format('Y-m-d'),
+            'time'    => Carbon::parse($a->created_at)->setTimezone('Asia/Manila')->format('H:i'),
+            'id_number' => $a->id_number,
             'name'    => $a->name,
+            'email'   => $a->email,
+            'phone'   => $a->phone,
             'course'  => $a->course,
             'year'    => $a->year,
             'purpose' => $a->purpose,
@@ -80,6 +83,28 @@ class ReportsController extends Controller
                 'borrowed'  => (int) $b->borrowed,
                 'damaged'   => (int) $b->damaged,
                 'lost'      => (int) $b->lost,
+            ])
+        );
+    }
+
+    public function departmentAttendance(Request $request)
+    {
+        $query = Attendance::query()->orderBy('course')->orderBy('name');
+
+        if ($start = $request->query('start')) {
+            $query->whereDate('created_at', '>=', $start);
+        }
+        if ($end = $request->query('end')) {
+            $query->whereDate('created_at', '<=', $end);
+        }
+
+        return response()->json(
+            $query->get()->values()->map(fn($a, $i) => [
+                'no'      => $i + 1,
+                'course'  => $a->course,
+                'name'    => $a->name,
+                'year'    => $a->year,
+                'date'    => Carbon::parse($a->created_at)->setTimezone('Asia/Manila')->format('Y-m-d H:i'),
             ])
         );
     }

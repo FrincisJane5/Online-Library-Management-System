@@ -15,6 +15,8 @@ class BorrowingRecord extends Model
         'contact_number',
         'course',
         'year',
+        'academic_year',
+        'semester',
         'book_title',
         'call_number',
         'borrow_date',

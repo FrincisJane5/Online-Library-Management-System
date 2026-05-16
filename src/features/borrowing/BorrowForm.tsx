@@ -18,6 +18,7 @@ const EMPTY_FORM = {
   idNumber: '',
   studentName: '', email: '', contactNumber: '',
   course: '', year: '',
+  academicYear: '', semester: '',
   dateBorrowed: today(), dueDate: '',
 };
 
@@ -79,6 +80,8 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         contact_number: form.contactNumber || undefined,
         course:         form.course || undefined,
         year:           form.year || undefined,
+        academic_year:  form.academicYear || undefined,
+        semester:       form.semester || undefined,
         book_title:     selectedBook.title ?? '',
         call_number:    selectedBook.call_number ?? undefined,
         borrow_date:    form.dateBorrowed,
@@ -206,6 +209,25 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         <div>
           <label className="block text-slate-700 mb-2">Due Date</label>
           <input type="date" {...field('dueDate')} required className={`w-full ${inputCls}`} />
+        </div>
+      </div>
+
+      {/* Academic Year & Semester */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-slate-700 mb-2">Academic Year</label>
+          <input {...field('academicYear')} placeholder="e.g. 2024-2025" className={`w-full ${inputCls}`} />
+        </div>
+        <div>
+          <label className="block text-slate-700 mb-2">Semester</label>
+          <select value={form.semester}
+            onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
+            className={`w-full ${inputCls}`}>
+            <option value="">Select Semester</option>
+            <option value="1st Semester">1st Semester</option>
+            <option value="2nd Semester">2nd Semester</option>
+            <option value="Summer">Summer</option>
+          </select>
         </div>
       </div>
 

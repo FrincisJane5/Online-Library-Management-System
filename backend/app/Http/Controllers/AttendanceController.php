@@ -22,7 +22,7 @@ class AttendanceController extends Controller
                 'course'     => $a->course,
                 'year'       => $a->year,
                 'purpose'    => $a->purpose,
-                'created_at' => $a->created_at?->format('Y-m-d H:i'),
+                'created_at' => $a->created_at?->setTimezone('Asia/Manila')->format('Y-m-d H:i'),
             ])
         );
     }
@@ -32,7 +32,7 @@ class AttendanceController extends Controller
     {
         $idNumber = $request->query('id_number', '');
         $exists = Attendance::where('id_number', $idNumber)
-            ->whereDate('created_at', now()->toDateString())
+            ->whereDate('created_at', now('Asia/Manila')->toDateString())
             ->exists();
 
         return response()->json(['exists' => $exists]);
@@ -77,7 +77,7 @@ class AttendanceController extends Controller
 
         // Reject duplicate ID for today
         $alreadyLogged = Attendance::where('id_number', $data['id_number'])
-            ->whereDate('created_at', now()->toDateString())
+            ->whereDate('created_at', now('Asia/Manila')->toDateString())
             ->exists();
 
         if ($alreadyLogged) {

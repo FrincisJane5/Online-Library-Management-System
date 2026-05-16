@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Download, Printer } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { reportService } from '../../services/reportService';
-import { exportCSV } from '../../utils';
 
 type ReportType = 'attendance' | 'borrowing' | 'inventory' | 'overdue' | 'department-attendance';
 
@@ -53,6 +52,31 @@ export default function ReportsPage() {
     finally { setLoading(false); }
   };
 
+  const exportPDF = () => {
+    const reportEl = document.getElementById('report-content');
+    if (!reportEl) return;
+    const win = window.open('', '_blank')!;
+    win.document.write(`<!DOCTYPE html><html><head><title>${active} Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; padding: 24px; color: #111; }
+        h2 { color: #0f766e; margin-bottom: 4px; }
+        h4 { color: #0f766e; margin: 16px 0 4px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        th { background: #f1f5f9; text-align: left; padding: 6px 10px; border: 1px solid #e2e8f0; }
+        td { padding: 6px 10px; border: 1px solid #e2e8f0; }
+        tr:nth-child(even) { background: #f8fafc; }
+        p.meta { color: #64748b; font-size: 11px; margin: 2px 0 12px; }
+        @page { margin: 20mm; }
+      </style></head><body>
+      <h2>${TABS.find(t => t.key === active)?.label} Report</h2>
+      <p class="meta">Generated: ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
+      ${reportEl.innerHTML}
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -88,13 +112,9 @@ export default function ReportsPage() {
               className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
               Generate
             </button>
-            <button onClick={() => exportCSV(data, `${active}-report.csv`)}
+            <button onClick={exportPDF}
               className="flex items-center gap-2 px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors">
-              <Download className="w-4 h-4" /> CSV
-            </button>
-            <button onClick={() => window.print()}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors">
-              <Printer className="w-4 h-4" /> Print
+              <Download className="w-4 h-4" /> Export PDF
             </button>
           </div>
 
@@ -103,14 +123,17 @@ export default function ReportsPage() {
             <p className="text-center py-12 text-slate-500">No data. Click Generate to load report.</p>
           )}
 
-          {/* Attendance */}
+          <div id="report-content">
           {!loading && active === 'attendance' && data.length > 0 && (
-            <Table headers={['Date', 'Time', 'Name', 'Course', 'Year', 'Purpose']}>
+            <Table headers={['Date', 'Time', 'ID Number', 'Name', 'Email', 'Phone', 'Course', 'Year', 'Purpose']}>
               {data.map((r, i) => (
                 <tr key={i} className="hover:bg-slate-50">
                   <td className="px-6 py-4">{r.date}</td>
                   <td className="px-6 py-4 text-slate-600">{r.time}</td>
+                  <td className="px-6 py-4 text-slate-600">{r.id_number ?? '—'}</td>
                   <td className="px-6 py-4">{r.name}</td>
+                  <td className="px-6 py-4 text-slate-600">{r.email ?? '—'}</td>
+                  <td className="px-6 py-4 text-slate-600">{r.phone ?? '—'}</td>
                   <td className="px-6 py-4 text-slate-600">{r.course}</td>
                   <td className="px-6 py-4 text-slate-600">{r.year}</td>
                   <td className="px-6 py-4 text-slate-600">{r.purpose}</td>
@@ -174,17 +197,49 @@ export default function ReportsPage() {
           )}
 
           {/* Department Attendance */}
-          {!loading && active === 'department-attendance' && data.length > 0 && (
-            <Table headers={['Department / Course', 'Total Visits', 'Unique Students']}>
-              {data.map((r, i) => (
-                <tr key={i} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-900">{r.course ?? r.department ?? '—'}</td>
-                  <td className="px-6 py-4 text-center font-semibold text-teal-700">{r.total_visits ?? r.totalVisits ?? 0}</td>
-                  <td className="px-6 py-4 text-center text-slate-600">{r.unique_students ?? r.uniqueStudents ?? '—'}</td>
-                </tr>
-              ))}
-            </Table>
-          )}
+          {!loading && active === 'department-attendance' && data.length > 0 && (() => {
+            // Group by course
+            const grouped: Record<string, any[]> = {};
+            data.forEach((r: any) => {
+              const dept = r.course ?? 'Unknown';
+              if (!grouped[dept]) grouped[dept] = [];
+              grouped[dept].push(r);
+            });
+            return (
+              <div className="space-y-8">
+                {Object.entries(grouped).map(([dept, rows]) => (
+                  <div key={dept}>
+                    <h4 className="text-teal-700 font-bold text-base mb-2 px-1">{dept}</h4>
+                    <div className="overflow-x-auto rounded-lg border border-slate-200">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-slate-700 font-medium w-12">No.</th>
+                            <th className="px-4 py-3 text-left text-slate-700 font-medium">Student Name</th>
+                            <th className="px-4 py-3 text-left text-slate-700 font-medium">Year</th>
+                            <th className="px-4 py-3 text-left text-slate-700 font-medium">Date & Time</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {rows.map((r: any, i: number) => (
+                            <tr key={i} className="hover:bg-slate-50">
+                              <td className="px-4 py-3 text-slate-400 text-center">{i + 1}</td>
+                              <td className="px-4 py-3 font-medium text-slate-900">{r.name}</td>
+                              <td className="px-4 py-3 text-slate-600">{r.year ?? '—'}</td>
+                              <td className="px-4 py-3 text-slate-600">{r.date}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1 px-1">{rows.length} student{rows.length !== 1 ? 's' : ''}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          </div>{/* end report-content */}
 
           {!loading && data.length > 0 && (
             <p className="mt-4 text-slate-500 text-sm">{data.length} record{data.length !== 1 ? 's' : ''}</p>

@@ -60,6 +60,7 @@ Route::middleware([])->group(function () {
         Route::get('/borrowing',  [ReportsController::class, 'borrowing']);
         Route::get('/inventory',  [ReportsController::class, 'inventory']);
         Route::get('/overdue',    [ReportsController::class, 'overdue']);
+        Route::get('/department-attendance', [ReportsController::class, 'departmentAttendance']);
     });
 
     // Settings (read)

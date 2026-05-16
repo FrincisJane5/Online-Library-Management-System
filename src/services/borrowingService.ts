@@ -6,7 +6,7 @@ import type { BorrowingRecord } from '../types';
 // Shape of the data sent when creating a new borrow record
 export interface BorrowPayload {
   student_name: string;    // Full name of the borrower
-  id_number: string;       // Student/patron ID
+  id_number?: string;      // Student/patron ID
   email?: string;          // Optional contact email
   contact_number?: string; // Optional phone number
   course?: string;         // Optional course/program

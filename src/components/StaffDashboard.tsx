@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from '../api/axios';
 import Layout from './Layout';
 import { User } from '../types';
@@ -47,10 +47,14 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
     visits: item.total,
   }));
 
-  const deptData = programs.map(p => {
-    const found = (dashboard.visits_by_department ?? []).find((d: any) => d.course === p.code);
-    return { course: p.code, visits: found ? found.visits : 0 };
-  });
+  const deptData = useMemo(() => {
+    const visitMap: Record<string, number> = {};
+    (dashboard?.visits_by_department ?? []).forEach((d: any) => { visitMap[d.course] = d.visits; });
+    const keys = programs.length > 0
+      ? programs.map(p => p.code)
+      : Object.keys(visitMap);
+    return keys.map(code => ({ course: code, visits: visitMap[code] ?? 0 }));
+  }, [programs, dashboard]);
 
   const stats = dashboard.stats;
 
