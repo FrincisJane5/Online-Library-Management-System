@@ -14,6 +14,8 @@ const PURPOSES = [
   'Others',
 ];
 
+const SUFFIXES = ['', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+
 const EMPTY = {
   id_number: '',
   first_name: '',
@@ -27,6 +29,9 @@ const EMPTY = {
   purpose: '',
 };
 
+// Only letters, spaces, hyphens, apostrophes
+const nameRegex = /^[a-zA-ZÀ-ÿ\s'\-]+$/;
+
 export default function PublicAttendance() {
   const [form, setForm]         = useState(EMPTY);
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -34,6 +39,7 @@ export default function PublicAttendance() {
   const [done, setDone]         = useState(false);
   const [error, setError]       = useState('');
   const [idError, setIdError]   = useState('');
+  const [nameErrors, setNameErrors] = useState({ first_name: '', middle_name: '', last_name: '' });
 
   useEffect(() => {
     api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
@@ -41,10 +47,6 @@ export default function PublicAttendance() {
 
   const selectedProgram = programs.find(p => p.code === form.course);
   const yearLevels = selectedProgram?.year_levels ?? [];
-
-  const set = (key: keyof typeof EMPTY) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm(f => ({ ...f, [key]: e.target.value }));
 
   const checkIdNumber = async () => {
     if (!form.id_number) return;
@@ -56,9 +58,29 @@ export default function PublicAttendance() {
     }
   };
 
+  const validateName = (key: 'first_name' | 'middle_name' | 'last_name', value: string) => {
+    if (!value) return '';
+    return nameRegex.test(value) ? '' : 'Letters only (no numbers or special characters)';
+  };
+
+  const handleNameChange = (key: 'first_name' | 'middle_name' | 'last_name') =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setForm(f => ({ ...f, [key]: value }));
+      setNameErrors(prev => ({ ...prev, [key]: validateName(key, value) }));
+    };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (idError) return;
+    // Validate names before submit
+    const firstErr = validateName('first_name', form.first_name);
+    const midErr   = validateName('middle_name', form.middle_name);
+    const lastErr  = validateName('last_name', form.last_name);
+    if (firstErr || midErr || lastErr) {
+      setNameErrors({ first_name: firstErr, middle_name: midErr, last_name: lastErr });
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -74,6 +96,7 @@ export default function PublicAttendance() {
       setDone(true);
       setForm(EMPTY);
       setIdError('');
+      setNameErrors({ first_name: '', middle_name: '', last_name: '' });
       setTimeout(() => setDone(false), 5000);
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? err?.response?.data?.errors
@@ -89,7 +112,6 @@ export default function PublicAttendance() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-2xl">
-
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md space-y-5">
           {/* Logo + Header */}
           <div className="flex flex-col items-center gap-2 pb-3 border-b border-gray-100">
@@ -109,56 +131,84 @@ export default function PublicAttendance() {
             <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">{error}</div>
           )}
 
-          {/* Row 1: ID Number */}
+          {/* ID Number — digits only, format YYYY-NNNNN */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">ID Number <span className="text-red-500">*</span></label>
             <input
               value={form.id_number}
-              onChange={e => { set('id_number')(e); setIdError(''); }}
+              onChange={e => {
+                // Allow digits and one hyphen only, max 10 chars
+                const val = e.target.value.replace(/[^0-9\-]/g, '').slice(0, 10);
+                setForm(f => ({ ...f, id_number: val }));
+                setIdError('');
+              }}
               onBlur={checkIdNumber}
               placeholder="e.g. 2024-00001"
-              required maxLength={10}
+              required
+              maxLength={10}
+              inputMode="numeric"
               className={`${inputCls} ${idError ? 'border-red-400' : ''}`}
             />
             {idError
               ? <p className="text-red-500 text-xs mt-1">{idError}</p>
-              : <p className="text-gray-400 text-xs mt-1">Max 10 characters</p>
+              : <p className="text-gray-400 text-xs mt-1">Numbers and hyphen only (e.g. 2024-00001)</p>
             }
           </div>
 
-          {/* Row 2: First + Last name */}
+          {/* First + Last name */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">First Name <span className="text-red-500">*</span></label>
-              <input value={form.first_name} onChange={set('first_name')}
-                placeholder="e.g. Juan" required maxLength={50} className={inputCls} />
+              <input
+                value={form.first_name}
+                onChange={handleNameChange('first_name')}
+                placeholder="e.g. Juan" required maxLength={50}
+                className={`${inputCls} ${nameErrors.first_name ? 'border-red-400' : ''}`}
+              />
+              {nameErrors.first_name && <p className="text-red-500 text-xs mt-1">{nameErrors.first_name}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Last Name <span className="text-red-500">*</span></label>
-              <input value={form.last_name} onChange={set('last_name')}
-                placeholder="e.g. Dela Cruz" required maxLength={50} className={inputCls} />
+              <input
+                value={form.last_name}
+                onChange={handleNameChange('last_name')}
+                placeholder="e.g. Dela Cruz" required maxLength={50}
+                className={`${inputCls} ${nameErrors.last_name ? 'border-red-400' : ''}`}
+              />
+              {nameErrors.last_name && <p className="text-red-500 text-xs mt-1">{nameErrors.last_name}</p>}
             </div>
           </div>
 
-          {/* Row 3: Middle name + Suffix */}
+          {/* Middle name + Suffix */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Middle Name <span className="text-gray-400">(optional)</span></label>
-              <input value={form.middle_name} onChange={set('middle_name')}
-                placeholder="e.g. Santos" maxLength={50} className={inputCls} />
+              <input
+                value={form.middle_name}
+                onChange={handleNameChange('middle_name')}
+                placeholder="e.g. Santos" maxLength={50}
+                className={`${inputCls} ${nameErrors.middle_name ? 'border-red-400' : ''}`}
+              />
+              {nameErrors.middle_name && <p className="text-red-500 text-xs mt-1">{nameErrors.middle_name}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Suffix <span className="text-gray-400">(optional)</span></label>
-              <input value={form.suffix} onChange={set('suffix')}
-                placeholder="e.g. Jr., Sr., III" maxLength={10} className={inputCls} />
+              <select
+                value={form.suffix}
+                onChange={e => setForm(f => ({ ...f, suffix: e.target.value }))}
+                className={inputCls}
+              >
+                {SUFFIXES.map(s => <option key={s} value={s}>{s || '— None —'}</option>)}
+              </select>
             </div>
           </div>
 
-          {/* Row 4: Email + Phone */}
+          {/* Email + Phone */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Email <span className="text-red-500">*</span></label>
-              <input type="email" value={form.email} onChange={set('email')}
+              <input type="email" value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="e.g. juan@email.com" required maxLength={100} className={inputCls} />
             </div>
             <div>
@@ -166,15 +216,18 @@ export default function PublicAttendance() {
               <input
                 type="tel" value={form.phone}
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 11) }))}
-                placeholder="e.g. 09123456789" required maxLength={11}
+                placeholder="e.g. 09123456789" required
+                maxLength={11} inputMode="numeric"
                 pattern="\d{11}" title="Must be exactly 11 digits"
                 className={inputCls}
               />
-              <p className="text-gray-400 text-xs mt-1">{form.phone.length}/11 digits</p>
+              <p className={`text-xs mt-1 ${form.phone.length === 11 ? 'text-green-600' : 'text-gray-400'}`}>
+                {form.phone.length}/11 digits
+              </p>
             </div>
           </div>
 
-          {/* Row 5: Course + Year Level */}
+          {/* Course + Year Level */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Course <span className="text-red-500">*</span></label>
@@ -196,16 +249,18 @@ export default function PublicAttendance() {
             </div>
           </div>
 
-          {/* Row 6: Purpose */}
+          {/* Purpose */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Purpose of Visit <span className="text-red-500">*</span></label>
-            <select value={form.purpose} onChange={set('purpose')} required className={inputCls}>
+            <select value={form.purpose}
+              onChange={e => setForm(f => ({ ...f, purpose: e.target.value }))}
+              required className={inputCls}>
               <option value="">Select Purpose</option>
               {PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
 
-          <button type="submit" disabled={loading || !!idError}
+          <button type="submit" disabled={loading || !!idError || !!nameErrors.first_name || !!nameErrors.last_name || !!nameErrors.middle_name}
             className="w-full bg-[#1B764C] text-white py-2.5 rounded-lg hover:bg-[#016937] disabled:opacity-60 font-medium transition-colors text-sm">
             {loading ? 'Submitting...' : 'Submit Attendance'}
           </button>
