@@ -25,6 +25,7 @@ const EMPTY_FORM = {
 export default function BorrowForm({ onSuccess, onError }: Props) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'not_found'>('idle');
+  const [attendedToday, setAttendedToday] = useState<boolean | null>(null);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [bookQuery, setBookQuery] = useState('');
   const [bookResults, setBookResults] = useState<Book[]>([]);
@@ -50,15 +51,19 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
     const id = form.idNumber.trim();
     if (!id) return;
     try {
-      const res = await api.get(`/attendance/lookup?id_number=${encodeURIComponent(id)}`);
-      if (res.data.found) {
+      const [lookupRes, checkRes] = await Promise.all([
+        api.get(`/attendance/lookup?id_number=${encodeURIComponent(id)}`),
+        api.get(`/attendance/check-id?id_number=${encodeURIComponent(id)}`),
+      ]);
+      setAttendedToday(checkRes.data.exists === true);
+      if (lookupRes.data.found) {
         setForm(f => ({
           ...f,
-          studentName:   res.data.name   ?? f.studentName,
-          email:         res.data.email  ?? f.email,
-          contactNumber: res.data.phone  ?? f.contactNumber,
-          course:        res.data.course ?? f.course,
-          year:          res.data.year   ?? f.year,
+          studentName:   lookupRes.data.name   ?? f.studentName,
+          email:         lookupRes.data.email  ?? f.email,
+          contactNumber: lookupRes.data.phone  ?? f.contactNumber,
+          course:        lookupRes.data.course ?? f.course,
+          year:          lookupRes.data.year   ?? f.year,
         }));
         setLookupStatus('found');
       } else {
@@ -66,12 +71,14 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       }
     } catch {
       setLookupStatus('idle');
+      setAttendedToday(null);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBook) { onError({ response: { data: { message: 'Please select a book from the search results.' } } }); return; }
+    if (attendedToday === false) { onError({ response: { data: { message: 'Student has not attended the library today. Attendance is required before borrowing.' } } }); return; }
     try {
       await borrowingService.borrow({
         student_name:   form.studentName,
@@ -91,6 +98,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       setSelectedBook(null);
       setBookQuery('');
       setLookupStatus('idle');
+      setAttendedToday(null);
       onSuccess('Book successfully borrowed! A confirmation email has been sent to the student.');
     } catch (err: any) {
       onError(err);
@@ -133,6 +141,12 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
             )}
             {lookupStatus === 'not_found' && (
               <p className="text-amber-500 text-xs mt-1">⚠️ No attendance record found. Please fill in manually.</p>
+            )}
+            {attendedToday === true && (
+              <p className="text-green-600 text-xs mt-1">✅ Student has attended the library today.</p>
+            )}
+            {attendedToday === false && (
+              <p className="text-red-600 text-xs mt-1">🚫 Student has NOT attended the library today. Borrowing is not allowed.</p>
             )}
           </div>
 
@@ -232,7 +246,8 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       </div>
 
       <button type="submit"
-        className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors">
+        disabled={attendedToday === false}
+        className="px-6 py-3 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
         Confirm Borrowing
       </button>
     </form>

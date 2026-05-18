@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import type { User } from './types';
+import { Toaster } from './components/ui/sonner';
 
 import LoginScreen from './components/LoginScreen';
 import LibrarianDashboard from './components/LibrarianDashboard';
@@ -88,6 +89,7 @@ function App() {
 
   return (
     <>
+      <Toaster position="top-right" richColors closeButton />
       {/* Library Closed Screen-Lock Popup */}
       {closedPopup && currentUser && (
         <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">

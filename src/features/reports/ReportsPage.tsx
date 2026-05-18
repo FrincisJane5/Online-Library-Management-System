@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { reportService } from '../../services/reportService';
 
-type ReportType = 'attendance' | 'borrowing' | 'inventory' | 'overdue' | 'department-attendance';
+type ReportType = 'borrowing' | 'inventory' | 'overdue' | 'department-attendance';
 
 const TABS: { key: ReportType; label: string }[] = [
-  { key: 'attendance',            label: 'Attendance' },
   { key: 'borrowing',             label: 'Borrowing & Returning' },
   { key: 'inventory',             label: 'Inventory Status' },
   { key: 'overdue',               label: 'Overdue & Fines' },
@@ -30,7 +29,7 @@ function Badge({ value }: { value: string }) {
 }
 
 export default function ReportsPage() {
-  const [active, setActive] = useState<ReportType>('attendance');
+  const [active, setActive] = useState<ReportType>('borrowing');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [data, setData] = useState<any[]>([]);
@@ -41,7 +40,6 @@ export default function ReportsPage() {
     try {
       const range = { start: start || undefined, end: end || undefined };
       const fetchers: Record<ReportType, () => Promise<any>> = {
-        attendance:             () => reportService.attendance(range),
         borrowing:              () => reportService.borrowing(range),
         inventory:              () => reportService.inventory(),
         overdue:                () => reportService.overdue(range),
@@ -124,26 +122,6 @@ export default function ReportsPage() {
           )}
 
           <div id="report-content">
-          {/* Attendance */}
-          {!loading && active === 'attendance' && data.length > 0 && (
-            <Table headers={['No.', 'Date', 'Time', 'ID Number', 'Name', 'Email', 'Phone', 'Course', 'Year', 'Purpose']}>
-              {data.map((r, i) => (
-                <tr key={i} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 text-slate-400 text-center">{i + 1}</td>
-                  <td className="px-6 py-4">{r.date}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.time}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.id_number ?? '—'}</td>
-                  <td className="px-6 py-4">{r.name}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.email ?? '—'}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.phone ?? '—'}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.course}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.year}</td>
-                  <td className="px-6 py-4 text-slate-600">{r.purpose}</td>
-                </tr>
-              ))}
-            </Table>
-          )}
-
           {/* Borrowing */}
           {!loading && active === 'borrowing' && data.length > 0 && (
             <Table headers={['No.', 'Date', 'Student', 'ID', 'Book', 'Call No.', 'Status', 'Action', 'Due Date', 'Returned']}>

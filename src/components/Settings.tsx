@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Save, Info, Plus, Trash2, Edit, X } from 'lucide-react';
+import { Save, Plus, Trash2, Edit, X } from 'lucide-react';
 import api from '../api/axios';
+import { toast } from 'sonner';
 
 interface SettingsProps {
   user: User;
@@ -23,8 +24,6 @@ export default function Settings({ user, onLogout }: SettingsProps) {
   });
 
   const [saved, setSaved] = useState(false);
-
-  // Program management state
   interface Program { id: number; code: string; name: string; total_years: number; }
   const [programs, setPrograms]       = useState<Program[]>([]);
   const [progForm, setProgForm]       = useState({ code: '', name: '', total_years: 4 });
@@ -66,9 +65,8 @@ export default function Settings({ user, onLogout }: SettingsProps) {
       sms_notifications:    settings.smsNotifications,
       library_policies:     settings.libraryPolicies,
     }).then(() => {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }).catch(() => alert('Failed to save settings.'));
+      toast.success('Settings saved successfully!');
+    }).catch(() => toast.error('Failed to save settings.'));
   };
 
   return (
@@ -80,12 +78,7 @@ export default function Settings({ user, onLogout }: SettingsProps) {
           <p className="text-slate-600">Configure system settings and library policies.</p>
         </div>
 
-        {saved && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <Info className="w-5 h-5 text-green-600" />
-            <p className="text-green-900">Settings saved successfully!</p>
-          </div>
-        )}
+
 
         {/* Settings Form */}
         <form onSubmit={handleSave} className="space-y-6">

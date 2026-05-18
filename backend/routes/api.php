@@ -31,9 +31,12 @@ Route::middleware([])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // Books — read & lookup open to staff; write protected below
-    Route::get('/books',        [BookController::class, 'index']);
-    Route::get('/books/lookup', [BookController::class, 'lookup']);
+    // Books — all operations open to staff and admin
+    Route::get('/books',           [BookController::class, 'index']);
+    Route::get('/books/lookup',    [BookController::class, 'lookup']);
+    Route::post('/books',          [BookController::class, 'store']);
+    Route::put('/books/{book}',    [BookController::class, 'update']);
+    Route::delete('/books/{book}', [BookController::class, 'destroy']);
 
     // Borrowing
     Route::get('/borrowings',                    [BorrowingController::class, 'index']);
@@ -69,11 +72,6 @@ Route::middleware([])->group(function () {
 
 // ─── Admin Only ───────────────────────────────────────────────────────────────
 Route::middleware(['admin'])->group(function () {
-
-    // Book management (write)
-    Route::post('/books',          [BookController::class, 'store']);
-    Route::put('/books/{book}',    [BookController::class, 'update']);
-    Route::delete('/books/{book}', [BookController::class, 'destroy']);
 
     // User management
     Route::get('/users',                          [UserManagementController::class, 'index']);
