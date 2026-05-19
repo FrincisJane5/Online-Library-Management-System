@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Search, Send, Check, RotateCcw } from 'lucide-react';
+import { Search, Send, Check } from 'lucide-react';
 import api from '../api/axios';
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
@@ -39,6 +39,7 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
   const [penaltyFilter, setPenaltyFilter] = useState('');
   const [sentId, setSentId] = useState<number | null>(null);
   const [bulkSent, setBulkSent] = useState(false);
+  const [confirmFine, setConfirmFine] = useState<FineRecord | null>(null);
 
   const fetchFines = async () => {
     const res = await api.get('/fines');
@@ -85,17 +86,9 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
     try {
       await api.patch(`/fines/${id}/pay`);
       await fetchFines();
+      setConfirmFine(null);
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Failed to mark fine as paid.');
-    }
-  };
-
-  const markUnpaid = async (id: number) => {
-    try {
-      await api.patch(`/fines/${id}/unpay`);
-      await fetchFines();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Failed to mark fine as unpaid.');
     }
   };
 
@@ -202,17 +195,14 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
                                 className="flex items-center gap-1 px-2 py-1 text-teal-600 border border-teal-600 hover:bg-teal-50 rounded transition-colors text-xs">
                                 {sentId === fine.id ? <><Check className="w-3 h-3" /> Sent</> : <><Send className="w-3 h-3" /> Remind</>}
                               </button>
-                              <button onClick={() => markPaid(fine.id)}
+                              <button onClick={() => setConfirmFine(fine)}
                                 className="px-2 py-1 text-green-600 border border-green-600 hover:bg-green-50 rounded transition-colors text-xs">
                                 Mark Paid
                               </button>
                             </>
                           )}
                           {!isUnpaid(fine.status) && (
-                            <button onClick={() => markUnpaid(fine.id)}
-                              className="flex items-center gap-1 px-2 py-1 text-orange-600 border border-orange-600 hover:bg-orange-50 rounded transition-colors text-xs">
-                              <RotateCcw className="w-3 h-3" /> Mark Unpaid
-                            </button>
+                            <span className="text-xs text-slate-400 italic">Paid</span>
                           )}
                         </div>
                       </td>
@@ -232,6 +222,44 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
           )}
         </div>
       </div>
+
+      {/* Confirm Mark Paid Dialog */}
+      {confirmFine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Confirm Payment</h3>
+            <p className="text-slate-500 text-sm mb-4">Please verify the payment details before proceeding.</p>
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 space-y-2 text-sm mb-6">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Student</span>
+                <span className="font-medium text-slate-900">{confirmFine.studentName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Book</span>
+                <span className="font-medium text-slate-900 text-right max-w-[60%]">{confirmFine.bookTitle}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Due Date</span>
+                <span className="text-slate-700">{confirmFine.dueDate}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200 pt-2 mt-2">
+                <span className="text-slate-500 font-medium">Fine Amount</span>
+                <span className="font-bold text-green-700 text-base">₱{Number(confirmFine.fineAmount).toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmFine(null)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm">
+                Cancel
+              </button>
+              <button onClick={() => markPaid(confirmFine.id)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium">
+                Confirm Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

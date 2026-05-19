@@ -28,4 +28,8 @@ export const reportService = {
   // GET /api/reports/department-attendance — attendance grouped by course/department
   departmentAttendance: (range: DateRange = {}) =>
     api.get('/reports/department-attendance', { params: range }).then(r => r.data),
+
+  // GET /api/reports/payment-collection — paid fines accountability report
+  paymentCollection: (range: DateRange = {}) =>
+    api.get('/reports/payment-collection', { params: range }).then(r => r.data),
 };

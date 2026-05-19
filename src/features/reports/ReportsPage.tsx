@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { reportService } from '../../services/reportService';
 
-type ReportType = 'borrowing' | 'inventory' | 'overdue' | 'department-attendance';
+type ReportType = 'borrowing' | 'inventory' | 'overdue' | 'department-attendance' | 'payment-collection';
 
 const TABS: { key: ReportType; label: string }[] = [
-  { key: 'borrowing',             label: 'Borrowing & Returning' },
-  { key: 'inventory',             label: 'Inventory Status' },
-  { key: 'overdue',               label: 'Overdue & Fines' },
+  { key: 'borrowing',           label: 'Borrowing & Returning' },
+  { key: 'inventory',           label: 'Inventory Status' },
+  { key: 'overdue',             label: 'Overdue & Fines' },
   { key: 'department-attendance', label: 'Department Attendance' },
+  { key: 'payment-collection',  label: 'Payment Collection' },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -44,6 +45,7 @@ export default function ReportsPage() {
         inventory:              () => reportService.inventory(),
         overdue:                () => reportService.overdue(range),
         'department-attendance': () => reportService.departmentAttendance(range),
+        'payment-collection':   () => reportService.paymentCollection(range),
       };
       setData(await fetchers[active]());
     } catch { setData([]); }
@@ -218,6 +220,35 @@ export default function ReportsPage() {
                   </div>
                 ))}
               </div>
+            );
+          })()}
+
+          {/* Payment Collection */}
+          {!loading && active === 'payment-collection' && data.length > 0 && (() => {
+            const total = data.reduce((sum: number, r: any) => sum + Number(r.fineAmount), 0);
+            return (
+              <>
+                <Table headers={['No.', 'Date Paid', 'Student', 'ID No.', 'Book', 'Days Overdue', 'Fine Amount', 'Status']}>
+                  {data.map((r: any, i: number) => (
+                    <tr key={i} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 text-slate-400 text-center">{i + 1}</td>
+                      <td className="px-6 py-4">{r.datePaid ?? '-'}</td>
+                      <td className="px-6 py-4 font-medium">{r.student}</td>
+                      <td className="px-6 py-4 text-slate-600">{r.idNumber}</td>
+                      <td className="px-6 py-4 text-slate-600">{r.book}</td>
+                      <td className="px-6 py-4 text-center text-slate-600">{r.daysOverdue}</td>
+                      <td className="px-6 py-4 font-medium text-green-700">₱{Number(r.fineAmount).toFixed(2)}</td>
+                      <td className="px-6 py-4"><Badge value={r.fineStatus} /></td>
+                    </tr>
+                  ))}
+                </Table>
+                <div className="mt-4 flex justify-end">
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg px-6 py-3 text-right">
+                    <p className="text-sm text-teal-600">Total Collected</p>
+                    <p className="text-xl font-bold text-teal-700">₱{total.toFixed(2)}</p>
+                  </div>
+                </div>
+              </>
             );
           })()}
 

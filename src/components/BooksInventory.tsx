@@ -84,6 +84,19 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    // Client-side duplicate call number check
+    const callNum = formData.call_number.trim();
+    if (callNum) {
+      const duplicate = books.find(
+        b => b.call_number?.toLowerCase() === callNum.toLowerCase() && b.id !== editingBook?.id
+      );
+      if (duplicate) {
+        setFormError(`Call number "${callNum}" already exists for "${duplicate.title ?? 'another book'}".`);
+        return;
+      }
+    }
+
     try {
       const payload = {
         call_number: formData.call_number || null,
@@ -107,7 +120,12 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
         fetchBooks();
       }
     } catch (err: any) {
-      setFormError(err.response?.data?.message || 'Could not save book.');
+      const errors = err.response?.data?.errors;
+      if (errors?.call_number) {
+        setFormError('Call number already exists. Each book must have a unique call number.');
+      } else {
+        setFormError(err.response?.data?.message || 'Could not save book.');
+      }
     }
   };
 

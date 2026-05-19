@@ -131,4 +131,32 @@ class ReportsController extends Controller
             'action'      => $r->action,
         ]));
     }
+
+    public function paymentCollection(Request $request)
+    {
+        $query = BorrowingRecord::query()
+            ->where('fine_status', 'paid')
+            ->whereNotNull('fine_amount')
+            ->where('fine_amount', '>', 0)
+            ->latest('updated_at');
+
+        if ($start = $request->query('start')) {
+            $query->whereDate('updated_at', '>=', $start);
+        }
+        if ($end = $request->query('end')) {
+            $query->whereDate('updated_at', '<=', $end);
+        }
+
+        return response()->json($query->get()->map(fn($r) => [
+            'datePaid'    => $r->updated_at ? Carbon::parse($r->updated_at)->setTimezone('Asia/Manila')->format('Y-m-d') : null,
+            'student'     => $r->student_name,
+            'idNumber'    => $r->id_number,
+            'book'        => $r->book_title,
+            'daysOverdue' => $r->return_date && $r->due_date
+                ? max(0, Carbon::parse($r->due_date)->diffInDays(Carbon::parse($r->return_date), false))
+                : 0,
+            'fineAmount'  => (float) $r->fine_amount,
+            'fineStatus'  => $r->fine_status,
+        ]));
+    }
 }

@@ -16,7 +16,7 @@ class BookController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'call_number' => 'nullable|string',
+            'call_number' => 'nullable|string|unique:books,call_number',
             'title'       => 'nullable|string',
             'author'      => 'nullable|string',
             'pages'       => 'nullable|integer|min:1',
@@ -52,7 +52,7 @@ class BookController extends Controller
     public function update(Request $request, Book $book)
     {
         $validated = $request->validate([
-            'call_number' => 'nullable|string',
+            'call_number' => 'nullable|string|unique:books,call_number,' . $book->id,
             'title'       => 'nullable|string',
             'author'      => 'nullable|string',
             'pages'       => 'nullable|integer|min:1',
