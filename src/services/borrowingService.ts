@@ -22,6 +22,7 @@ export interface BorrowPayload {
 // Shape of the data sent when returning a book
 export interface ReturnPayload {
   action?: 'damaged' | 'lost'; // Optional flag if the book was returned damaged or lost
+  description?: string;        // Optional description for damaged/lost condition
 }
 
 // borrowingService — all borrowing and fine-related API calls

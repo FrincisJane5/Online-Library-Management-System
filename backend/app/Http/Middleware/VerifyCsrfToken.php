@@ -4,22 +4,28 @@ namespace App\Http\Middleware;
 
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as Middleware;
 
+/**
+ * VerifyCsrfToken — CSRF protection middleware.
+ * All API routes are excluded ('*') because the frontend uses stateless header-based auth,
+ * not cookie/session-based auth, so CSRF tokens are not needed.
+ */
 class VerifyCsrfToken extends Middleware
 {
     /**
-     * The URIs that should be excluded from CSRF verification.
-     * These will bypass the security check entirely.
+     * URIs excluded from CSRF verification.
+     * '*' means all routes are excluded — appropriate for a stateless API.
      *
      * @var array<int, string>
      */
     protected $except = ['*'];
 
     /**
-     * Handle an incoming request.
+     * Skip CSRF check entirely in DEMO_MODE.
+     * In production, the parent class handles CSRF normally for any non-excluded routes.
      */
     public function handle($request, $next)
     {
-        // Check if DEMO_MODE is true in your .env file
+        // Allow bypassing CSRF in demo/development mode via .env DEMO_MODE=true
         if (config('app.demo_mode') === true || env('DEMO_MODE') === true || env('DEMO_MODE') === 'true') {
             return $next($request);
         }

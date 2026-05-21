@@ -31,6 +31,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
   const [bookResults, setBookResults] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const debouncedQuery = useDebounce(bookQuery);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     api.get('/programs').then(r => setPrograms(r.data)).catch(() => {});
@@ -77,6 +78,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     if (!selectedBook) { onError({ response: { data: { message: 'Please select a book from the search results.' } } }); return; }
     if (attendedToday === false) { onError({ response: { data: { message: 'Student has not attended the library today. Attendance is required before borrowing.' } } }); return; }
     try {
@@ -94,6 +96,7 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         borrow_date:    form.dateBorrowed,
         due_date:       form.dueDate,
       });
+       setLoading(false);
       setForm(EMPTY_FORM);
       setSelectedBook(null);
       setBookQuery('');
@@ -101,7 +104,10 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       setAttendedToday(null);
       onSuccess('Book successfully borrowed! A confirmation email has been sent to the student.');
     } catch (err: any) {
+       setLoading(false);
       onError(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -245,11 +251,17 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
         </div>
       </div>
 
-      <button type="submit"
-        disabled={attendedToday === false}
-        className="px-6 py-3 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors">
-        Confirm Borrowing
-      </button>
+      {loading ? (
+        <button type="button" disabled
+          className="w-full py-3 bg-teal-600 text-white rounded-lg text-sm animate-pulse">
+          Processing...
+        </button>
+      ) : (
+        <button type="submit"
+          className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm transition-colors">
+          Confirm Borrowing
+        </button>
+      )}
     </form>
   );
 }

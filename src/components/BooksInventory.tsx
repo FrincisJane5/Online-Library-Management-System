@@ -44,16 +44,19 @@ const emptyForm = {
 
 export default function BooksInventory({ user, onLogout }: BooksInventoryProps) {
   const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
   useEffect(() => { fetchBooks(); }, []);
 
   const fetchBooks = async () => {
+    setLoading(true);
     try {
       const res = await api.get('/books');
       const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
@@ -76,6 +79,8 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
       })));
     } catch (err) {
       console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,6 +89,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setFormSubmitting(true);
 
     // Client-side duplicate call number check
     const callNum = formData.call_number.trim();
@@ -93,6 +99,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
       );
       if (duplicate) {
         setFormError(`Call number "${callNum}" already exists for "${duplicate.title ?? 'another book'}".`);
+        setFormSubmitting(false);
         return;
       }
     }
@@ -126,6 +133,8 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
       } else {
         setFormError(err.response?.data?.message || 'Could not save book.');
       }
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
@@ -226,17 +235,15 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                 <th className="px-4 py-3 text-center">Year</th>
                 <th className="px-4 py-3 text-center">Pages</th>
                 <th className="px-4 py-3 text-center">Cost</th>
-                <th className="px-4 py-3 text-center">Avail.</th>
-                <th className="px-4 py-3 text-center">Borrowed</th>
-                <th className="px-4 py-3 text-center">Damaged</th>
-                <th className="px-4 py-3 text-center">Lost</th>
                 <th className="px-4 py-3">Remarks</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.length > 0 ? paged.map(book => (
+              {loading ? (
+                <tr><td colSpan={11} className="px-6 py-10 text-center text-[#9DA4A6]">Loading...</td></tr>
+              ) : filtered.length > 0 ? paged.map(book => (
                 <tr key={book.id} className="hover:bg-[#F5F6F5] transition-colors">
                   <td className="px-4 py-3 font-mono text-xs">{book.call_number ?? '—'}</td>
                   <td className="px-4 py-3 font-semibold">{book.title ?? '—'}</td>
@@ -245,10 +252,6 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                   <td className="px-4 py-3 text-center">{book.year ?? '—'}</td>
                   <td className="px-4 py-3 text-center">{book.pages ?? '—'}</td>
                   <td className="px-4 py-3 text-center">{book.cost_price != null ? `₱${Number(book.cost_price).toFixed(2)}` : '—'}</td>
-                  <td className="px-4 py-3 text-center">{book.available}</td>
-                  <td className="px-4 py-3 text-center">{book.borrowed}</td>
-                  <td className="px-4 py-3 text-center">{book.damaged}</td>
-                  <td className="px-4 py-3 text-center">{book.lost}</td>
                   <td className="px-4 py-3 text-xs text-[#9DA4A6]">{book.remarks ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${statusColor(book.status)}`}>{book.status}</span>
@@ -261,7 +264,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={15} className="px-6 py-10 text-center text-[#9DA4A6]">No books found.</td></tr>
+                <tr><td colSpan={11} className="px-6 py-10 text-center text-[#9DA4A6]">No books found.</td></tr>
               )}
             </tbody>
           </table>
@@ -314,9 +317,9 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
                 <div className="flex gap-3 pt-4 border-t">
                   <button type="button" onClick={() => { setShowModal(false); resetForm(); setFormError(null); }}
                     className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
-                  <button type="submit"
-                    className="flex-1 bg-[#1B764C] text-white py-2 rounded-lg hover:bg-[#145a3a] transition-colors">
-                    {editingBook ? 'Save Changes' : 'Save Book'}
+                  <button type="submit" disabled={formSubmitting}
+                    className="flex-1 bg-[#1B764C] text-white py-2 rounded-lg hover:bg-[#145a3a] disabled:opacity-60 transition-colors">
+                    {formSubmitting ? 'Saving...' : (editingBook ? 'Save Changes' : 'Save Book')}
                   </button>
                 </div>
               </form>

@@ -11,10 +11,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 
+/**
+ * BorrowingController — manages the full borrow/return lifecycle and fine tracking.
+ * Delegates business logic to BorrowingService to keep this controller thin.
+ */
 class BorrowingController extends Controller
 {
+    /** Inject BorrowingService via constructor for borrow/return logic */
     public function __construct(private BorrowingService $service) {}
 
+    /**
+     * GET /api/borrowings
+     * Returns all borrowing records with their associated book details.
+     */
     public function index()
     {
         return response()->json(
@@ -36,20 +45,25 @@ class BorrowingController extends Controller
                 'action'         => $r->action,
                 'fine_amount'    => $r->fine_amount,
                 'fine_status'    => $r->fine_status,
+                // Include book snapshot for the BorrowingDetails panel
                 'book'           => $r->book ? [
-                    'id'         => $r->book->id,
-                    'call_number'=> $r->book->call_number,
-                    'title'      => $r->book->title,
-                    'author'     => $r->book->author,
-                    'publisher'  => $r->book->publisher,
-                    'year'       => $r->book->year,
-                    'available'  => $r->book->available,
-                    'status'     => $r->book->status,
+                    'id'          => $r->book->id,
+                    'call_number' => $r->book->call_number,
+                    'title'       => $r->book->title,
+                    'author'      => $r->book->author,
+                    'publisher'   => $r->book->publisher,
+                    'year'        => $r->book->year,
+                    'available'   => $r->book->available,
+                    'status'      => $r->book->status,
                 ] : null,
             ])
         );
     }
 
+    /**
+     * POST /api/borrowings
+     * Creates a new borrow record, decrements book availability, and sends a confirmation email.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -66,13 +80,14 @@ class BorrowingController extends Controller
             'due_date'       => 'required|date|after_or_equal:borrow_date',
         ]);
 
+        // Delegate to service — handles book lookup, copy decrement, and record creation
         $record = $this->service->borrow(
             $data,
             $request->header('X-User-Name', 'Staff'),
             $request->header('X-User-Role', 'staff')
         );
 
-        // Send confirmation email to student
+        // Send confirmation email — non-fatal if mail fails
         try {
             Mail::to($record->email)->send(new BorrowConfirmationMail($record));
         } catch (\Throwable $e) {
@@ -82,18 +97,28 @@ class BorrowingController extends Controller
         return response()->json($record, 201);
     }
 
+    /**
+     * POST /api/borrowings/{borrowing}/return
+     * Marks a book as returned, calculates fines, and updates book copy counts.
+     */
     public function returnBook(Request $request, BorrowingRecord $borrowing)
     {
         $record = $this->service->return(
             $borrowing,
-            $request->input('action'),
+            $request->input('action'),      // null | "damaged" | "lost"
             $request->header('X-User-Name', 'Staff'),
-            $request->header('X-User-Role', 'staff')
+            $request->header('X-User-Role', 'staff'),
+            $request->input('description')  // Optional description of damage/loss
         );
 
         return response()->json($record);
     }
 
+    /**
+     * GET /api/fines
+     * Returns all records with overdue days or fines.
+     * Auto-calculates and persists running fines for still-borrowed overdue books.
+     */
     public function fines()
     {
         $fineRate = (float) (\App\Models\LibrarySetting::first()?->fine_rate ?? 5);
@@ -130,12 +155,14 @@ class BorrowingController extends Controller
                         : 'Never',
                 ];
             })
+            // Only include records that actually have overdue days or a fine
             ->filter(fn($r) => $r['daysOverdue'] > 0 || $r['fineAmount'] > 0)
             ->values();
 
         return response()->json($records);
     }
 
+    /** PATCH /api/fines/{borrowing}/pay — marks a fine as paid */
     public function markPaid(Request $request, BorrowingRecord $borrowing)
     {
         $borrowing->update(['fine_status' => 'paid']);
@@ -148,6 +175,7 @@ class BorrowingController extends Controller
         return response()->json(['message' => 'Fine marked as paid']);
     }
 
+    /** PATCH /api/fines/{borrowing}/unpay — marks a fine as unpaid */
     public function markUnpaid(Request $request, BorrowingRecord $borrowing)
     {
         $borrowing->update(['fine_status' => 'unpaid']);
@@ -160,6 +188,10 @@ class BorrowingController extends Controller
         return response()->json(['message' => 'Fine marked as unpaid']);
     }
 
+    /**
+     * POST /api/fines/{borrowing}/remind
+     * Sends a single overdue reminder email and logs the notification.
+     */
     public function sendReminder(Request $request, BorrowingRecord $borrowing)
     {
         $type    = $this->service->notificationType($borrowing);
@@ -167,6 +199,8 @@ class BorrowingController extends Controller
 
         $status = 'Failed';
         $sentAt = null;
+
+        // Attempt to send the email — log as Failed if it throws
         if ($borrowing->email) {
             try {
                 Mail::to($borrowing->email)->send(new OverdueReminderMail($borrowing));
@@ -175,8 +209,10 @@ class BorrowingController extends Controller
             } catch (\Throwable) {}
         }
 
+        // Update the last notification timestamp regardless of success
         $borrowing->update(['last_notification_at' => now()]);
 
+        // Save a notification log entry for the Notifications page
         \App\Models\NotificationLog::create([
             'borrowing_record_id' => $borrowing->id,
             'student_name'        => $borrowing->student_name,
@@ -196,11 +232,18 @@ class BorrowingController extends Controller
             'user_role'   => $request->header('X-User-Role', 'staff'),
         ]);
 
-        return response()->json(['message' => $status === 'Sent' ? "Reminder sent to {$borrowing->email}" : 'Notification logged (mail failed or no email)']);
+        return response()->json(['message' => $status === 'Sent'
+            ? "Reminder sent to {$borrowing->email}"
+            : 'Notification logged (mail failed or no email)']);
     }
 
+    /**
+     * POST /api/fines/reminders
+     * Sends overdue reminder emails to ALL currently overdue borrowers in bulk.
+     */
     public function sendReminders(Request $request)
     {
+        // Fetch all borrowed records that are past their due date
         $overdue = BorrowingRecord::where('status', 'borrowed')
             ->where('due_date', '<', Carbon::today()->toDateString())
             ->get();
@@ -212,16 +255,16 @@ class BorrowingController extends Controller
 
             $status = 'Failed';
             $sentAt = null;
+
             if ($record->email) {
                 try {
                     Mail::to($record->email)->send(new OverdueReminderMail($record));
                     $status = 'Sent';
                     $sentAt = now();
+                    $record->update(['last_notification_at' => now()]);
                     $sent++;
                 } catch (\Throwable) {}
             }
-
-            $record->update(['last_notification_at' => now()]);
 
             \App\Models\NotificationLog::create([
                 'borrowing_record_id' => $record->id,

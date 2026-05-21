@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Plus, AlertCircle, X, KeyRound } from 'lucide-react';
+import { Plus, AlertCircle, X } from 'lucide-react';
 import api from '../api/axios';
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
@@ -30,18 +30,14 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState(emptyForm);
 
-  // Reset password modal
-  const [resetTarget, setResetTarget] = useState<StaffUser | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [resetError, setResetError] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
-
   const fetchUsers = async () => {
     setFetchError(null);
+    setFetchLoading(true);
     try {
       const res = await api.get('/users');
       setStaffUsers(Array.isArray(res.data) ? res.data : []);
@@ -51,6 +47,8 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
           ? 'Cannot reach the backend. Make sure the Laravel server is running.'
           : (error.response?.data?.message ?? 'Unable to fetch users.')
       );
+    } finally {
+      setFetchLoading(false);
     }
   };
 
@@ -104,22 +102,6 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetTarget) return;
-    setResetLoading(true);
-    setResetError('');
-    try {
-      await api.patch(`/users/${resetTarget.id}/reset-password`, { password: newPassword });
-      setResetTarget(null);
-      setNewPassword('');
-    } catch (err: any) {
-      setResetError(err.response?.data?.message || 'Failed to reset password.');
-    } finally {
-      setResetLoading(false);
-    }
-  };
-
   const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm';
   const labelCls = 'block text-slate-700 text-sm font-medium mb-1';
 
@@ -160,7 +142,9 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {paged.map(su => {
+              {fetchLoading ? (
+                <tr><td colSpan={8} className="px-5 py-10 text-center text-slate-400">Loading...</td></tr>
+              ) : paged.map(su => {
                 const isInactive = su.status === 'Inactive';
                 return (
                   <tr key={su.id} className={isInactive ? 'bg-red-50 opacity-70' : 'hover:bg-slate-50'}>
@@ -188,11 +172,6 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
                         }} className="px-3 py-1 text-blue-600 border border-blue-600 hover:bg-blue-50 rounded text-xs transition-colors">
                           Edit
                         </button>
-                        {/* Reset Password — available for all users */}
-                        <button onClick={() => { setResetTarget(su); setNewPassword(''); setResetError(''); }}
-                          className="px-3 py-1 text-orange-600 border border-orange-500 hover:bg-orange-50 rounded text-xs transition-colors flex items-center gap-1">
-                          <KeyRound className="w-3 h-3" /> Reset PW
-                        </button>
                         {su.role !== 'Admin' && (
                           isInactive ? (
                             <button onClick={() => handleStatusChange(su, 'Active')}
@@ -211,7 +190,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
                   </tr>
                 );
               })}
-              {staffUsers.length === 0 && (
+              {!fetchLoading && staffUsers.length === 0 && (
                 <tr><td colSpan={8} className="px-5 py-10 text-center text-slate-400">No users found.</td></tr>
               )}
             </tbody>
@@ -291,39 +270,6 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
           </div>
         )}
 
-        {/* Reset Password Modal */}
-        {resetTarget && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl">
-              <div className="flex justify-between items-center px-6 py-4 border-b">
-                <h3 className="text-slate-900 font-bold text-lg">Reset Password</h3>
-                <button onClick={() => setResetTarget(null)}><X className="w-5 h-5 text-slate-400 hover:text-slate-700" /></button>
-              </div>
-              <form onSubmit={handleResetPassword} className="px-6 py-5 space-y-4">
-                <p className="text-sm text-slate-600">
-                  Setting new password for <span className="font-semibold text-slate-900">{resetTarget.fullName}</span> ({resetTarget.role})
-                </p>
-                <div>
-                  <label className={labelCls}>New Password <span className="text-red-500">*</span></label>
-                  <input type="password" required minLength={6} value={newPassword} className={inputCls}
-                    placeholder="Enter new password"
-                    onChange={e => setNewPassword(e.target.value)} />
-                </div>
-                {resetError && <p className="text-red-600 text-sm">{resetError}</p>}
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setResetTarget(null)}
-                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm transition-colors">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={resetLoading}
-                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm transition-colors">
-                    {resetLoading ? 'Resetting...' : 'Reset Password'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );

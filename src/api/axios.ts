@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create a pre-configured axios instance shared across the whole app
 const api = axios.create({
-    baseURL: '/api',          // All requests will be prefixed with /api (proxied to Laravel backend)
+    baseURL: `${(import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? ''}/api`,  // Use env var for LAN access, fallback to proxy
     withCredentials: false,   // Don't send cookies — we use header-based identity instead
     headers: {
         'Accept': 'application/json',       // Tell the server we expect JSON responses

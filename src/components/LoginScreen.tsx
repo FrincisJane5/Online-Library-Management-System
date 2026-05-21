@@ -14,12 +14,20 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Forgot password state
+  // Forgot password modal state
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotUsername, setForgotUsername] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  // After username verified — set new password step
+  const [resetToken, setResetToken] = useState('');
+  const [resetName, setResetName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,22 +43,46 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     }
   };
 
+  // Step 1: verify username
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError('');
-    setForgotMsg('');
     setForgotLoading(true);
     try {
-      const res = await api.post('/auth/forgot-password', { email: forgotEmail });
-      setForgotMsg(res.data.message);
+      const res = await api.post('/auth/forgot-password', { username: forgotUsername });
+      setResetToken(res.data.token);
+      setResetName(res.data.name);
     } catch (err: any) {
-      setForgotError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      setForgotError(err.response?.data?.message || 'No account found with that username.');
     } finally {
       setForgotLoading(false);
     }
   };
 
-  // Detect deactivated error to show special styling
+  // Step 2: set new password
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) { setResetError('Passwords do not match.'); return; }
+    setResetError('');
+    setResetLoading(true);
+    try {
+      await api.post('/auth/reset-password', { token: resetToken, password: newPassword });
+      setResetDone(true);
+    } catch (err: any) {
+      setResetError(err.response?.data?.message || 'Failed to reset password.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const closeForgot = () => {
+    setShowForgot(false);
+    setForgotUsername(''); setForgotError('');
+    setResetToken(''); setResetName('');
+    setNewPassword(''); setConfirmPassword(''); setResetError('');
+    setResetDone(false);
+  };
+
   const isDeactivated = error.toLowerCase().includes('deactivated');
 
   return (
@@ -88,13 +120,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             )}
 
             <button type="submit" disabled={isSubmitting}
-              className="w-full bg-[#1B764C] hover:bg-[#016937] text-white py-3 rounded-lg transition-colors">
+              className="w-full bg-[#1B764C] hover:bg-[#016937] disabled:opacity-60 text-white py-3 rounded-lg transition-colors">
               {isSubmitting ? 'Signing in...' : 'Login'}
             </button>
           </form>
 
           <div className="mt-4 text-center">
-            <button onClick={() => { setShowForgot(true); setForgotEmail(''); setForgotMsg(''); setForgotError(''); }}
+            <button onClick={() => setShowForgot(true)}
               className="text-[#1B764C] hover:text-[#016937] text-sm underline">
               Forgot Password?
             </button>
@@ -102,47 +134,80 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
+      {/* Forgot / Reset Password Modal */}
       {showForgot && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg text-[#4B4C58]">Forgot Password</h3>
-              <button onClick={() => setShowForgot(false)}><X className="w-5 h-5 text-gray-500 hover:text-black" /></button>
+              <h3 className="font-bold text-lg text-[#4B4C58]">
+                {resetDone ? 'Password Updated' : resetToken ? 'Set New Password' : 'Forgot Password'}
+              </h3>
+              <button onClick={closeForgot}><X className="w-5 h-5 text-gray-500 hover:text-black" /></button>
             </div>
 
-            {!forgotMsg ? (
-              <>
-                <p className="text-sm text-gray-600 mb-1">
-                  Password reset is available for <span className="font-semibold text-[#1B764C]">Admin (Librarian)</span> accounts only.
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  If you are a <span className="font-semibold">Staff</span> member, please contact the Librarian to reset your password manually.
-                </p>
-                <form onSubmit={handleForgotSubmit} className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-[#4B4C58] mb-1">Admin Email Address</label>
-                    <input type="email" required value={forgotEmail}
-                      onChange={e => setForgotEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] text-sm"
-                      placeholder="Enter your admin email" />
-                  </div>
-                  {forgotError && <p className="text-red-600 text-sm">{forgotError}</p>}
-                  <button type="submit" disabled={forgotLoading}
-                    className="w-full bg-[#1B764C] hover:bg-[#016937] text-white py-2 rounded-lg text-sm transition-colors">
-                    {forgotLoading ? 'Sending...' : 'Send Reset Password'}
-                  </button>
-                </form>
-              </>
-            ) : (
+            {/* Step 3: Done */}
+            {resetDone && (
               <div className="text-center space-y-3">
                 <div className="text-green-600 text-4xl">✓</div>
-                <p className="text-sm text-gray-700">{forgotMsg}</p>
-                <button onClick={() => setShowForgot(false)}
+                <p className="text-sm text-gray-700">Password updated successfully. You can now log in.</p>
+                <button onClick={closeForgot}
                   className="w-full bg-[#1B764C] text-white py-2 rounded-lg text-sm hover:bg-[#016937] transition-colors">
                   Back to Login
                 </button>
               </div>
+            )}
+
+            {/* Step 2: Set new password */}
+            {!resetDone && resetToken && (
+              <>
+                <p className="text-sm text-gray-600 mb-4">
+                  Hello <span className="font-semibold text-[#1B764C]">{resetName}</span>, enter your new password below.
+                </p>
+                <form onSubmit={handleResetSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-[#4B4C58] mb-1">New Password</label>
+                    <input type="password" required minLength={6} value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] text-sm"
+                      placeholder="At least 6 characters" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4B4C58] mb-1">Confirm Password</label>
+                    <input type="password" required value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] text-sm"
+                      placeholder="Re-enter new password" />
+                  </div>
+                  {resetError && <p className="text-red-600 text-sm">{resetError}</p>}
+                  <button type="submit" disabled={resetLoading}
+                    className="w-full bg-[#1B764C] hover:bg-[#016937] disabled:opacity-60 text-white py-2 rounded-lg text-sm transition-colors">
+                    {resetLoading ? 'Saving...' : 'Save New Password'}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* Step 1: Enter username */}
+            {!resetDone && !resetToken && (
+              <>
+                <p className="text-sm text-gray-600 mb-4">
+                  Enter your username to reset your password. Works for both <span className="font-semibold">Admin</span> and <span className="font-semibold">Staff</span> accounts.
+                </p>
+                <form onSubmit={handleForgotSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-[#4B4C58] mb-1">Username</label>
+                    <input type="text" required value={forgotUsername}
+                      onChange={e => setForgotUsername(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] text-sm"
+                      placeholder="Enter your username" />
+                  </div>
+                  {forgotError && <p className="text-red-600 text-sm">{forgotError}</p>}
+                  <button type="submit" disabled={forgotLoading}
+                    className="w-full bg-[#1B764C] hover:bg-[#016937] disabled:opacity-60 text-white py-2 rounded-lg text-sm transition-colors">
+                    {forgotLoading ? 'Verifying...' : 'Continue'}
+                  </button>
+                </form>
+              </>
             )}
           </div>
         </div>

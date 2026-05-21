@@ -6,10 +6,19 @@ use App\Models\ActivityLog;
 use App\Models\LibrarySetting;
 use Illuminate\Http\Request;
 
+/**
+ * LibrarySettingController — manages the single row of global library configuration.
+ * GET is open to all staff; PUT is admin-only (enforced by the 'admin' middleware on the route).
+ */
 class LibrarySettingController extends Controller
 {
+    /**
+     * GET /api/settings
+     * Returns current settings, creating defaults on first run.
+     */
     public function show()
     {
+        // firstOrCreate with empty conditions ensures exactly one row always exists
         $settings = LibrarySetting::query()->firstOrCreate([], [
             'loan_duration'       => 7,
             'fine_rate'           => 5,
@@ -25,6 +34,10 @@ class LibrarySettingController extends Controller
         return response()->json($settings);
     }
 
+    /**
+     * PUT /api/settings
+     * Validates and saves updated settings, then logs the change.
+     */
     public function update(Request $request)
     {
         $validated = $request->validate([

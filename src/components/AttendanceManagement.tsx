@@ -34,18 +34,23 @@ const PURPOSES    = [
 
 export default function AttendanceManagement({ user, onLogout }: AttendanceManagementProps) {
   const [data, setData]           = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [programs, setPrograms]   = useState<{ code: string }[]>([]);
   const [search, setSearch]       = useState('');
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
   const [purpose, setPurpose]     = useState('');
-  const [qrUrl, setQrUrl]         = useState(window.location.origin + '/LccLibraryAttendance');
-  const qrRef                     = useRef<HTMLDivElement>(null);
+  // Always derive the QR URL from the browser's own origin so it works correctly on LAN.
+  // window.location.origin already contains the LAN IP (e.g. http://192.168.100.101:3000)
+  // when the page is opened via the network address, so no backend call is needed.
+  const [qrUrl] = useState(window.location.origin + '/LccLibraryAttendance');
+  const qrRef   = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.get('/attendance').then(r => setData(r.data)).catch(console.error);
-    api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
-    api.get('/network-url').then(r => setQrUrl(r.data.url + '/LccLibraryAttendance')).catch(() => {});
+    Promise.all([
+      api.get('/attendance').then(r => setData(r.data)),
+      api.get('/programs').then(r => setPrograms(r.data)),
+    ]).catch(console.error).finally(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(() => data.filter(item =>
@@ -198,7 +203,9 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {loading ? (
+                  <tr><td colSpan={8} className="text-center p-6 text-gray-500">Loading...</td></tr>
+                ) : filtered.length === 0 ? (
                   <tr><td colSpan={8} className="text-center p-6 text-gray-500">No records found</td></tr>
                 ) : paged.map(item => (
                   <tr key={item.id} className="border-t hover:bg-gray-50">

@@ -14,7 +14,7 @@ const PURPOSES = [
   'Others',
 ];
 
-const SUFFIXES = ['', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
+const SUFFIXES = ['', 'Jr.', 'Sr.', 'II', 'III'];
 
 const EMPTY = {
   id_number: '',
@@ -131,19 +131,24 @@ export default function PublicAttendance() {
             <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3 text-sm">{error}</div>
           )}
 
-          {/* ID Number — digits only, format YYYY-NNNNN */}
+          {/* ID Number — digits only, starts with 2022+, max 10 */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">ID Number <span className="text-red-500">*</span></label>
             <input
               value={form.id_number}
               onChange={e => {
-                // Allow digits and one hyphen only, max 10 chars
-                const val = e.target.value.replace(/[^0-9\-]/g, '').slice(0, 10);
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 setForm(f => ({ ...f, id_number: val }));
                 setIdError('');
               }}
-              onBlur={checkIdNumber}
-              placeholder="e.g. 2024-00001"
+              onBlur={() => {
+                if (form.id_number && (form.id_number.length < 4 || parseInt(form.id_number.slice(0, 4)) < 2022)) {
+                  setIdError('ID number must start with 2022 or later.');
+                } else {
+                  checkIdNumber();
+                }
+              }}
+              placeholder="e.g. 2022000000"
               required
               maxLength={10}
               inputMode="numeric"
@@ -151,7 +156,7 @@ export default function PublicAttendance() {
             />
             {idError
               ? <p className="text-red-500 text-xs mt-1">{idError}</p>
-              : <p className="text-gray-400 text-xs mt-1">Numbers and hyphen only (e.g. 2024-00001)</p>
+              : <p className="text-gray-400 text-xs mt-1">10-digit number starting with 2022 or later</p>
             }
           </div>
 
@@ -215,14 +220,17 @@ export default function PublicAttendance() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number <span className="text-red-500">*</span></label>
               <input
                 type="tel" value={form.phone}
-                onChange={e => setForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 11) }))}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  setForm(f => ({ ...f, phone: val }));
+                }}
                 placeholder="e.g. 09123456789" required
                 maxLength={11} inputMode="numeric"
-                pattern="\d{11}" title="Must be exactly 11 digits"
+                pattern="09\d{9}" title="Must start with 09 and be exactly 11 digits"
                 className={inputCls}
               />
-              <p className={`text-xs mt-1 ${form.phone.length === 11 ? 'text-green-600' : 'text-gray-400'}`}>
-                {form.phone.length}/11 digits
+              <p className={`text-xs mt-1 ${form.phone.length === 11 && form.phone.startsWith('09') ? 'text-green-600' : 'text-gray-400'}`}>
+                {form.phone.length}/11 digits{form.phone.length > 0 && !form.phone.startsWith('09') ? ' — must start with 09' : ''}
               </p>
             </div>
           </div>

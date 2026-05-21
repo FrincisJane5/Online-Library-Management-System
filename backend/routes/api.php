@@ -14,78 +14,80 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
-// ─── Public ──────────────────────────────────────────────────────────────────
-Route::post('/auth/login',           [AuthController::class, 'login']);
-Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);
-Route::post('/attendance',           [AttendanceController::class, 'store']);
-Route::get('/attendance/check-id',   [AttendanceController::class, 'checkId']);
-Route::get('/attendance/lookup',     [AttendanceController::class, 'lookup']);
-Route::get('/programs',              [ProgramController::class, 'index']);
-Route::get('/network-url',           fn() => response()->json([
+// ─── Public routes (no authentication required) ───────────────────────────────
+Route::post('/auth/login',           [AuthController::class, 'login']);           // Staff/admin login
+Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);  // Verify username, get token
+Route::post('/auth/reset-password',  [ForgotPasswordController::class, 'reset']); // Set new password with token
+Route::post('/attendance',           [AttendanceController::class, 'store']);     // Submit attendance form
+Route::get('/attendance/check-id',   [AttendanceController::class, 'checkId']);   // Duplicate ID check
+Route::get('/attendance/lookup',     [AttendanceController::class, 'lookup']);    // Auto-fill by ID
+Route::get('/programs',              [ProgramController::class, 'index']);        // Course list for dropdowns
+Route::get('/network-url',           fn() => response()->json([                  // LAN IP for QR code generation
     'url' => 'http://' . gethostbyname(gethostname()) . ':3000',
 ]));
 
-// ─── Staff + Admin (authenticated via X-User-Role header) ────────────────────
+// ─── Staff + Admin routes ───────────────────────────────────────────'──────────
 Route::middleware([])->group(function () {
 
-    // Dashboard
+    // Dashboard — aggregated stats, charts, and recent activity
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // Books — all operations open to staff and admin
+    // Books — full CRUD open to both staff and admin
     Route::get('/books',           [BookController::class, 'index']);
-    Route::get('/books/lookup',    [BookController::class, 'lookup']);
+    Route::get('/books/lookup',    [BookController::class, 'lookup']);   // Autocomplete search
     Route::post('/books',          [BookController::class, 'store']);
     Route::put('/books/{book}',    [BookController::class, 'update']);
     Route::delete('/books/{book}', [BookController::class, 'destroy']);
 
-    // Borrowing
-    Route::get('/borrowings',                    [BorrowingController::class, 'index']);
-    Route::post('/borrowings',                   [BorrowingController::class, 'store']);
-    Route::post('/borrowings/{borrowing}/return',[BorrowingController::class, 'returnBook']);
+    // Borrowing — create borrow records and process returns
+    Route::get('/borrowings',                     [BorrowingController::class, 'index']);
+    Route::post('/borrowings',                    [BorrowingController::class, 'store']);
+    Route::post('/borrowings/{borrowing}/return', [BorrowingController::class, 'returnBook']);
 
-    // Fines
-    Route::get('/fines',                    [BorrowingController::class, 'fines']);
-    Route::post('/fines/reminders',         [BorrowingController::class, 'sendReminders']);
-    Route::patch('/fines/{borrowing}/pay',  [BorrowingController::class, 'markPaid']);
-    Route::patch('/fines/{borrowing}/unpay',[BorrowingController::class, 'markUnpaid']);
-    Route::post('/fines/{borrowing}/remind',[BorrowingController::class, 'sendReminder']);
+    // Fines — view, mark paid/unpaid, and send reminders
+    Route::get('/fines',                     [BorrowingController::class, 'fines']);
+    Route::post('/fines/reminders',          [BorrowingController::class, 'sendReminders']); // Bulk remind
+    Route::patch('/fines/{borrowing}/pay',   [BorrowingController::class, 'markPaid']);
+    Route::patch('/fines/{borrowing}/unpay', [BorrowingController::class, 'markUnpaid']);
+    Route::post('/fines/{borrowing}/remind', [BorrowingController::class, 'sendReminder']);  // Single remind
 
-    // Attendance management (read)
+    // Attendance — read all records (write is public above)
     Route::get('/attendance', [AttendanceController::class, 'index']);
 
-    // Notifications & Logs (read-only for staff)
-    Route::get('/notifications',  [NotificationController::class, 'index']);
-    Route::get('/activity-logs',  [ActivityLogController::class, 'index']);
+    // Notifications & Logs — read-only for staff
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/activity-logs', [ActivityLogController::class, 'index']);
 
-    // Reports (read-only)
+    // Reports — all report types, read-only
     Route::prefix('reports')->group(function () {
-        Route::get('/attendance', [ReportsController::class, 'attendance']);
-        Route::get('/borrowing',  [ReportsController::class, 'borrowing']);
-        Route::get('/inventory',  [ReportsController::class, 'inventory']);
-        Route::get('/overdue',    [ReportsController::class, 'overdue']);
+        Route::get('/attendance',            [ReportsController::class, 'attendance']);
+        Route::get('/borrowing',             [ReportsController::class, 'borrowing']);
+        Route::get('/inventory',             [ReportsController::class, 'inventory']);
+        Route::get('/overdue',               [ReportsController::class, 'overdue']);
         Route::get('/department-attendance', [ReportsController::class, 'departmentAttendance']);
         Route::get('/payment-collection',    [ReportsController::class, 'paymentCollection']);
     });
 
-    // Settings (read)
+    // Settings — read is open to staff; write is admin-only (see below)
     Route::get('/settings', [LibrarySettingController::class, 'show']);
 });
 
-// ─── Admin Only ───────────────────────────────────────────────────────────────
+// ─── Admin-only routes ────────────────────────────────────────────────────────
+// Protected by AdminMiddleware which checks the X-User-Role header
 Route::middleware(['admin'])->group(function () {
 
-    // User management
-    Route::get('/users',                          [UserManagementController::class, 'index']);
-    Route::post('/users',                         [UserManagementController::class, 'store']);
-    Route::put('/users/{user}',                   [UserManagementController::class, 'update']);
-    Route::patch('/users/{user}/status',          [UserManagementController::class, 'setStatus']);
-    Route::patch('/users/{user}/reset-password',  [UserManagementController::class, 'resetPassword']);
+    // User management — create, update, activate/deactivate staff accounts
+    Route::get('/users',                         [UserManagementController::class, 'index']);
+    Route::post('/users',                        [UserManagementController::class, 'store']);
+    Route::put('/users/{user}',                  [UserManagementController::class, 'update']);
+    Route::patch('/users/{user}/status',         [UserManagementController::class, 'setStatus']);
+    Route::patch('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword']);
 
-    // Settings (write)
+    // Settings — write (update library configuration)
     Route::put('/settings', [LibrarySettingController::class, 'update']);
 
-    // Program management
-    Route::post('/programs',              [ProgramController::class, 'store']);
-    Route::put('/programs/{program}',     [ProgramController::class, 'update']);
-    Route::delete('/programs/{program}',  [ProgramController::class, 'destroy']);
+    // Program management — add, edit, delete academic programs
+    Route::post('/programs',             [ProgramController::class, 'store']);
+    Route::put('/programs/{program}',    [ProgramController::class, 'update']);
+    Route::delete('/programs/{program}', [ProgramController::class, 'destroy']);
 });

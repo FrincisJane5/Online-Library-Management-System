@@ -1,3 +1,4 @@
+// useEffect for initial data fetch, useState for filter and log state
 import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import { activityLogService } from '../../services/activityLogService';
@@ -5,6 +6,7 @@ import type { ActivityLog } from '../../types';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 
+// Color classes for each action type badge
 const ACTION_COLOR: Record<string, string> = {
   Login:          'bg-slate-100 text-slate-700 border-slate-200',
   Borrow:         'bg-orange-100 text-orange-700 border-orange-200',
@@ -17,11 +19,13 @@ const ACTION_COLOR: Record<string, string> = {
   Notification:   'bg-purple-100 text-purple-700 border-purple-200',
 };
 
+// Color classes for each role badge
 const ROLE_COLOR: Record<string, string> = {
   Admin: 'bg-purple-100 text-purple-700 border-purple-200',
   Staff: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
+// Reusable colored badge component — looks up color from a provided map
 function Badge({ value, colorMap }: { value: string; colorMap: Record<string, string> }) {
   return (
     <span className={`inline-flex px-2 py-1 rounded border text-sm ${colorMap[value] ?? 'bg-slate-100 text-slate-700 border-slate-200'}`}>
@@ -30,6 +34,11 @@ function Badge({ value, colorMap }: { value: string; colorMap: Record<string, st
   );
 }
 
+/**
+ * ActivityLogsPage — displays the full audit trail of all system actions.
+ * Supports filtering by keyword, action type, and date range.
+ * Admin-only page.
+ */
 export default function ActivityLogsPage() {
   const [search, setSearch]     = useState('');
   const [action, setAction]     = useState('');
@@ -41,6 +50,7 @@ export default function ActivityLogsPage() {
 
   const { paged, page, totalPages, setPage, total } = usePagination(logs);
 
+  // Fetch logs from the API with the current filter values
   const fetchLogs = async (s = search, a = action, df = dateFrom, dt = dateTo) => {
     setLoading(true);
     setError(null);
@@ -48,11 +58,12 @@ export default function ActivityLogsPage() {
       const data = await activityLogService.getAll({
         search: s, action: a,
         date_from: df || undefined,
-        date_to: dt || undefined,
+        date_to:   dt || undefined,
       });
       setLogs(data);
     } catch (err: any) {
       console.error(err);
+      // Show a helpful message if the backend is unreachable
       const msg = err.code === 'ERR_NETWORK'
         ? 'Cannot reach the backend. Make sure the Laravel server is running on http://127.0.0.1:8000.'
         : (err.response?.data?.message ?? 'Failed to load activity logs.');
@@ -62,14 +73,16 @@ export default function ActivityLogsPage() {
     }
   };
 
-  // Initial load
+  // Load all logs on first render
   useEffect(() => { fetchLogs('', ''); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Re-fetch when the filter form is submitted
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchLogs(search, action, dateFrom, dateTo);
   };
 
+  // Build the action filter dropdown options from the loaded logs
   const uniqueActions = [...new Set(logs.map(l => l.action))];
 
   return (
@@ -79,9 +92,10 @@ export default function ActivityLogsPage() {
         <p className="text-slate-600">Full audit trail of all system actions.</p>
       </div>
 
-      {/* Filters */}
+      {/* ── Filter Form ───────────────────────────────────────────────── */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
         <div className="flex flex-wrap gap-4 items-end">
+          {/* Keyword search */}
           <div className="flex-1 min-w-48">
             <label className="block text-slate-700 mb-2 text-sm">Search</label>
             <div className="relative">
@@ -91,6 +105,7 @@ export default function ActivityLogsPage() {
                 className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
             </div>
           </div>
+          {/* Action type filter */}
           <div>
             <label className="block text-slate-700 mb-2 text-sm">Action</label>
             <select value={action} onChange={e => setAction(e.target.value)}
@@ -99,6 +114,7 @@ export default function ActivityLogsPage() {
               {uniqueActions.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
+          {/* Date range filters */}
           <div>
             <label className="block text-slate-700 mb-2 text-sm">From</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
@@ -116,7 +132,7 @@ export default function ActivityLogsPage() {
         </div>
       </form>
 
-      {/* Error Banner */}
+      {/* ── Error Banner ──────────────────────────────────────────────── */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 text-red-700">
           <span className="font-medium">Error:</span>
@@ -125,7 +141,7 @@ export default function ActivityLogsPage() {
         </div>
       )}
 
-      {/* Table */}
+      {/* ── Logs Table ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -145,7 +161,7 @@ export default function ActivityLogsPage() {
                 <tr key={log.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 text-slate-900 whitespace-nowrap">{log.dateTime}</td>
                   <td className="px-6 py-4 text-slate-900">{log.user}</td>
-                  <td className="px-6 py-4"><Badge value={log.role} colorMap={ROLE_COLOR} /></td>
+                  <td className="px-6 py-4"><Badge value={log.role}   colorMap={ROLE_COLOR}   /></td>
                   <td className="px-6 py-4"><Badge value={log.action} colorMap={ACTION_COLOR} /></td>
                   <td className="px-6 py-4 text-slate-600 max-w-md">{log.details}</td>
                 </tr>

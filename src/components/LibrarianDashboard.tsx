@@ -14,11 +14,14 @@ interface DashboardProps {
 export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
   const [dashboard, setDashboard] = useState<any>(null);
   const [programs, setPrograms]   = useState<{ code: string }[]>([]);
+  const [error, setError]         = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/dashboard").then(res => setDashboard(res.data)).catch(err => console.error(err));
-    api.get("/programs").then(res => setPrograms(res.data)).catch(console.error);
+    api.get("/dashboard")
+      .then(res => setDashboard(res.data))
+      .catch(() => setError("Cannot reach the backend. Make sure the Laravel server is running."));
+    api.get("/programs").then(res => setPrograms(res.data)).catch(() => {});
   }, []);
 
   const deptData = useMemo(() => {
@@ -27,6 +30,14 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
     const keys = programs.length > 0 ? programs.map(p => p.code) : Object.keys(visitMap);
     return keys.map(code => ({ course: code, visits: visitMap[code] ?? 0 }));
   }, [programs, dashboard]);
+
+  if (error) {
+    return (
+      <Layout user={user} onLogout={onLogout}>
+        <p className="p-6 text-red-600">{error}</p>
+      </Layout>
+    );
+  }
 
   if (!dashboard) {
     return (

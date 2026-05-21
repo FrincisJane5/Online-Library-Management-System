@@ -24,6 +24,7 @@ export default function Settings({ user, onLogout }: SettingsProps) {
   });
 
   const [saved, setSaved] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   interface Program { id: number; code: string; name: string; total_years: number; }
   const [programs, setPrograms]       = useState<Program[]>([]);
   const [progForm, setProgForm]       = useState({ code: '', name: '', total_years: 4 });
@@ -49,7 +50,7 @@ export default function Settings({ user, onLogout }: SettingsProps) {
         smsNotifications: Boolean(payload.sms_notifications),
         libraryPolicies: payload.library_policies ?? '',
       });
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setSettingsLoading(false));
   }, []);
 
   const handleSave = (e: React.FormEvent) => {
@@ -78,9 +79,9 @@ export default function Settings({ user, onLogout }: SettingsProps) {
           <p className="text-slate-600">Configure system settings and library policies.</p>
         </div>
 
-
-
-        {/* Settings Form */}
+        {settingsLoading ? (
+          <p className="text-slate-400">Loading settings...</p>
+        ) : (<>
         <form onSubmit={handleSave} className="space-y-6">
           {/* Borrowing Rules */}
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -353,6 +354,7 @@ export default function Settings({ user, onLogout }: SettingsProps) {
             </div>
           </div>
         )}
+        </>)}
       </div>
     </Layout>
   );

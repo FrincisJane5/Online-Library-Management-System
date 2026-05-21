@@ -5,9 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Program;
 use Illuminate\Http\Request;
 
+/**
+ * ProgramController — CRUD for academic programs (courses).
+ * The index route is public (used by the attendance form dropdown).
+ * Store, update, and destroy are admin-only.
+ */
 class ProgramController extends Controller
 {
-    /** Public: returns programs with generated year levels for the attendance form */
+    /**
+     * GET /api/programs
+     * Returns all programs with generated year level labels.
+     * Used by the attendance form and borrow form course dropdowns.
+     */
     public function index()
     {
         return response()->json(
@@ -16,11 +25,12 @@ class ProgramController extends Controller
                 'code'        => $p->code,
                 'name'        => $p->name,
                 'total_years' => $p->total_years,
-                'year_levels' => $p->yearLevels(),
+                'year_levels' => $p->yearLevels(), // e.g. ["1st Year", "2nd Year", ...]
             ])
         );
     }
 
+    /** POST /api/programs — creates a new program */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -31,6 +41,7 @@ class ProgramController extends Controller
         return response()->json(Program::create($validated), 201);
     }
 
+    /** PUT /api/programs/{program} — updates an existing program */
     public function update(Request $request, Program $program)
     {
         $validated = $request->validate([
@@ -42,6 +53,7 @@ class ProgramController extends Controller
         return response()->json($program->fresh());
     }
 
+    /** DELETE /api/programs/{program} — deletes a program */
     public function destroy(Program $program)
     {
         $program->delete();

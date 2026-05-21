@@ -1,3 +1,4 @@
+// useMemo for filtered/derived data, useState for filter state
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { BorrowingRecord } from '../../types';
@@ -5,18 +6,23 @@ import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/Pagination';
 
 interface Props {
-  records: BorrowingRecord[];
+  records: BorrowingRecord[]; // All borrowing records passed from BorrowingPage
 }
 
+/**
+ * BorrowingDetails — searchable, filterable table of all borrow/return transactions.
+ * Supports filtering by status (all/borrowed/returned) and keyword search.
+ */
 export default function BorrowingDetails({ records }: Props) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery]             = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'borrowed' | 'returned'>('all');
 
+  // Filter records by status and search keyword
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return records.filter(r => {
       const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-      const matchQuery = !term ||
+      const matchQuery  = !term ||
         r.student_name.toLowerCase().includes(term) ||
         r.book_title.toLowerCase().includes(term) ||
         (r.call_number ?? '').toLowerCase().includes(term) ||
@@ -27,13 +33,15 @@ export default function BorrowingDetails({ records }: Props) {
   }, [records, query, statusFilter]);
 
   const { paged, page, totalPages, setPage, reset, total } = usePagination(filtered);
-  // Reset to page 1 on filter change
+
+  // Reset to page 1 whenever the filtered results change
   useMemo(() => reset(), [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* ── Filters ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-3">
+        {/* Keyword search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -43,6 +51,7 @@ export default function BorrowingDetails({ records }: Props) {
             className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
+        {/* Status filter dropdown */}
         <select
           value={statusFilter}
           onChange={e => { setStatusFilter(e.target.value as typeof statusFilter); reset(); }}
@@ -54,7 +63,7 @@ export default function BorrowingDetails({ records }: Props) {
         </select>
       </div>
 
-      {/* Table */}
+      {/* ── Records Table ─────────────────────────────────────────────── */}
       <div className="overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600 text-left">
@@ -78,10 +87,12 @@ export default function BorrowingDetails({ records }: Props) {
               <tr key={r.id} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <p className="font-medium text-slate-900">{r.student_name}</p>
+                  {/* Show ID number as a subtitle if available */}
                   {r.id_number && <p className="text-slate-400 text-xs">{r.id_number}</p>}
                 </td>
                 <td className="px-4 py-3">
                   <p className="text-slate-900">{r.book_title}</p>
+                  {/* Show call number in monospace teal if available */}
                   {r.call_number && <p className="text-teal-700 font-mono text-xs">{r.call_number}</p>}
                 </td>
                 <td className="px-4 py-3 text-slate-700">{r.academic_year ?? '—'}</td>
@@ -90,8 +101,11 @@ export default function BorrowingDetails({ records }: Props) {
                 <td className="px-4 py-3 text-slate-600">{r.due_date}</td>
                 <td className="px-4 py-3 text-slate-600">{r.return_date ?? '—'}</td>
                 <td className="px-4 py-3">
+                  {/* Status badge — amber for borrowed, green for returned */}
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    r.status === 'borrowed' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
+                    r.status === 'borrowed'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-green-100 text-green-800'
                   }`}>
                     {r.status === 'borrowed' ? 'Borrowed' : 'Returned'}
                   </span>
@@ -102,6 +116,7 @@ export default function BorrowingDetails({ records }: Props) {
         </table>
       </div>
 
+      {/* Pagination — only shown when there are results */}
       {filtered.length > 0 && (
         <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
       )}

@@ -4,33 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * ForgotPasswordController — password reset for both admin and staff.
+ * Step 1: POST /api/auth/forgot-password  — verify username, return a short-lived token
+ * Step 2: POST /api/auth/reset-password   — verify token, set new password
+ */
 class ForgotPasswordController extends Controller
 {
+    /** POST /api/auth/forgot-password */
     public function send(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $request->validate(['username' => 'required|string']);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('username', $request->username)->first();
 
-        // Always return success to avoid email enumeration
-        if (!$user || $user->role !== 'admin') {
-            return response()->json(['message' => 'If that email belongs to an admin account, a reset link has been sent.']);
+        if (!$user) {
+            return response()->json(['message' => 'No account found with that username.'], 404);
         }
 
-        $tempPassword = Str::random(10);
-        $user->update(['password' => \Illuminate\Support\Facades\Hash::make($tempPassword)]);
+        // Generate a random token and store it in remember_token
+        $token = Str::random(32);
+        $user->update(['remember_token' => $token]);
 
-        Mail::raw(
-            "Hello {$user->full_name},\n\nYour temporary password is: {$tempPassword}\n\nPlease log in and change it immediately.\n\n— Library System",
-            function ($message) use ($user) {
-                $message->to($user->email)->subject('Library System – Password Reset');
-            }
-        );
+        return response()->json([
+            'message' => 'Username verified. You may now set a new password.',
+            'token'   => $token,
+            'name'    => $user->full_name,
+        ]);
+    }
 
-        return response()->json(['message' => 'If that email belongs to an admin account, a reset link has been sent.']);
+    /** POST /api/auth/reset-password */
+    public function reset(Request $request)
+    {
+        $request->validate([
+            'token'    => 'required|string',
+            'password' => 'required|string|min:6',
+        ]);
+
+        $user = User::where('remember_token', $request->token)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Invalid or expired reset token.'], 422);
+        }
+
+        $user->update([
+            'password'       => Hash::make($request->password),
+            'remember_token' => null,
+        ]);
+
+        return response()->json(['message' => 'Password updated successfully. You can now log in.']);
     }
 }

@@ -34,6 +34,7 @@ const PENALTY_LABEL: Record<string, { label: string; color: string; desc: string
 
 export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
   const [fines, setFines] = useState<FineRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [penaltyFilter, setPenaltyFilter] = useState('');
@@ -42,11 +43,15 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
   const [confirmFine, setConfirmFine] = useState<FineRecord | null>(null);
 
   const fetchFines = async () => {
-    const res = await api.get('/fines');
-    setFines(res.data);
+    setLoading(true);
+    try {
+      const res = await api.get('/fines');
+      setFines(res.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchFines().catch(console.error); }, []);
+  useEffect(() => { fetchFines(); }, []);
 
   const filteredFines = useMemo(() => fines.filter((fine) => {
     const matchesSearch =
@@ -163,7 +168,9 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {paged.map((fine) => {
+                {loading ? (
+                  <tr><td colSpan={13} className="px-5 py-10 text-center text-slate-400">Loading...</td></tr>
+                ) : paged.map((fine) => {
                   const penalty = getPenaltyInfo(fine);
                   return (
                     <tr key={fine.id} className="hover:bg-slate-50">
@@ -213,11 +220,11 @@ export default function OverdueFines({ user, onLogout }: OverdueFinesProps) {
             </table>
           </div>
 
-          {filteredFines.length === 0 && (
+          {!loading && filteredFines.length === 0 && (
             <p className="text-center py-12 text-slate-500">No overdue records found.</p>
           )}
 
-          {filteredFines.length > 0 && (
+          {!loading && filteredFines.length > 0 && (
             <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
           )}
         </div>
