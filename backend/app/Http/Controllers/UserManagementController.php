@@ -51,7 +51,6 @@ class UserManagementController extends Controller
 
         // New accounts are Active by default
         $user = User::create([
-            'name'      => $validated['full_name'],
             'full_name' => $validated['full_name'],
             'email'     => $validated['email'],
             'username'  => $validated['username'],
