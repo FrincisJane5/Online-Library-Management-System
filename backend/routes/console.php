@@ -13,3 +13,6 @@ Schedule::command('library:send-overdue-reminders')->dailyAt('08:00');
 
 // Delete records older than 30 days every day at midnight to keep the database lean
 Schedule::command('library:purge-old-records')->dailyAt('00:00');
+
+// Backup the database every day at 11:00 PM — keeps the last 7 backups in storage/backups/
+Schedule::command('db:backup')->dailyAt('23:00');

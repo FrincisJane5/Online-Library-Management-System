@@ -110,9 +110,9 @@ export default function PublicAttendance() {
   const inputCls = "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] text-sm";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-2xl">
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-md space-y-5">
+    <div className="min-h-screen bg-gray-100 p-3">
+      <div className="w-full max-w-2xl mx-auto">
+        <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-8 rounded-xl shadow-md space-y-5">
           {/* Logo + Header */}
           <div className="flex flex-col items-center gap-2 pb-3 border-b border-gray-100">
             <img src={logoImage} alt="Legacy College Logo" className="w-20 h-20 object-contain" />
@@ -161,7 +161,7 @@ export default function PublicAttendance() {
           </div>
 
           {/* First + Last name */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">First Name <span className="text-red-500">*</span></label>
               <input
@@ -185,7 +185,7 @@ export default function PublicAttendance() {
           </div>
 
           {/* Middle name + Suffix */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Middle Name <span className="text-gray-400">(optional)</span></label>
               <input
@@ -209,7 +209,7 @@ export default function PublicAttendance() {
           </div>
 
           {/* Email + Phone */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Email <span className="text-red-500">*</span></label>
               <input type="email" value={form.email}
@@ -236,7 +236,7 @@ export default function PublicAttendance() {
           </div>
 
           {/* Course + Year Level */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Course <span className="text-red-500">*</span></label>
               <select value={form.course}

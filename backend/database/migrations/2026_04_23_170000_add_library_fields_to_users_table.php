@@ -10,11 +10,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('full_name')->nullable()->after('name');
-            $table->string('username')->nullable()->unique()->after('full_name');
-            $table->enum('role', ['admin', 'staff'])->default('staff')->after('password');
-            $table->enum('status', ['Active', 'Deactivated'])->default('Active')->after('role');
-            $table->timestamp('last_login')->nullable()->after('status');
+            if (!Schema::hasColumn('users', 'full_name'))  $table->string('full_name')->nullable()->after('name');
+            if (!Schema::hasColumn('users', 'username'))   $table->string('username')->nullable()->unique()->after('full_name');
+            if (!Schema::hasColumn('users', 'role'))       $table->enum('role', ['admin', 'staff'])->default('staff')->after('password');
+            if (!Schema::hasColumn('users', 'status'))     $table->enum('status', ['Active', 'Deactivated'])->default('Active')->after('role');
+            if (!Schema::hasColumn('users', 'last_login')) $table->timestamp('last_login')->nullable()->after('status');
         });
 
         DB::table('users')

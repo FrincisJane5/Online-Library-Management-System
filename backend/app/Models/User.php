@@ -19,14 +19,15 @@ class User extends Authenticatable
 
     /** Columns that can be mass-assigned via create() or fill() */
     protected $fillable = [
-        'name',       // Internal name field (mirrors full_name)
-        'full_name',  // Display name shown in the UI header
-        'username',   // Login username (must be unique)
-        'role',       // "admin" | "staff"
-        'status',     // "Active" | "Inactive" — inactive users cannot log in
-        'email',      // Email address (used for password reset)
-        'password',   // Hashed password (auto-hashed via the 'hashed' cast below)
-        'last_login', // Timestamp of the most recent successful login
+        'name',
+        'full_name',
+        'username',
+        'role',
+        'status',
+        'email',
+        'password',
+        'last_login',
+        'remember_token',
     ];
 
     /** Columns excluded from JSON serialization (never sent to the frontend) */

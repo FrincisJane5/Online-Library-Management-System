@@ -69,7 +69,6 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
           email: formData.email,
           username: formData.username,
         };
-        if (formData.password) payload.password = formData.password;
         const res = await api.put(`/users/${editingUser.id}`, payload);
         if (editingUser.id.toString() === user.id) {
           onCurrentUserUpdated?.({ ...user, fullName: res.data.fullName, username: res.data.username });
@@ -230,15 +229,13 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
                     placeholder="Enter username"
                     onChange={e => setFormData({ ...formData, username: e.target.value })} />
                 </div>
-                <div>
-                  <label className={labelCls}>
-                    {editingUser ? 'New Password (leave blank to keep current)' : 'Password'} {!editingUser && <span className="text-red-500">*</span>}
-                  </label>
+                {!editingUser && <div>
+                  <label className={labelCls}>Password <span className="text-red-500">*</span></label>
                   <input type="password" value={formData.password} className={inputCls}
-                    required={!editingUser}
-                    placeholder={editingUser ? 'Leave blank to keep current' : 'Enter password'}
+                    required
+                    placeholder="Enter password"
                     onChange={e => setFormData({ ...formData, password: e.target.value })} />
-                </div>
+                </div>}
                 <div>
                   <label className={labelCls}>Role <span className="text-red-500">*</span></label>
                   <select value={formData.role} disabled={!!editingUser} className={inputCls + ' disabled:bg-slate-100'}

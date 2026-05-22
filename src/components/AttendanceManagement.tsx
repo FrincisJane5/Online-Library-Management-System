@@ -40,10 +40,10 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
   const [purpose, setPurpose]     = useState('');
-  // Always derive the QR URL from the browser's own origin so it works correctly on LAN.
-  // window.location.origin already contains the LAN IP (e.g. http://192.168.100.101:3000)
-  // when the page is opened via the network address, so no backend call is needed.
-  const [qrUrl] = useState(window.location.origin + '/LccLibraryAttendance');
+  // Always use the LAN IP for the QR code so phones can reach it regardless of
+  // whether the admin opened the app via localhost or the network address.
+  const lanOrigin = `${window.location.protocol}//${window.location.hostname === 'localhost' ? '192.168.100.101' : window.location.hostname}:${window.location.port}`;
+  const [qrUrl] = useState(lanOrigin + '/LccLibraryAttendance');
   const qrRef   = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
