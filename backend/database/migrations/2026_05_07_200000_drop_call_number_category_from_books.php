@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::table('books', function (Blueprint $table) {
             if (Schema::hasColumn('books', 'call_number')) {
+                $table->dropUnique('books_call_number_unique');
                 $table->dropColumn('call_number');
             }
             if (Schema::hasColumn('books', 'category')) {

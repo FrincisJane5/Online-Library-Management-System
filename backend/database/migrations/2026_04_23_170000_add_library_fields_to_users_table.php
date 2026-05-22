@@ -23,7 +23,7 @@ return new class extends Migration
 
         DB::table('users')
             ->whereNull('username')
-            ->update(['username' => DB::raw("SUBSTRING_INDEX(email, '@', 1)")]);
+            ->update(['username' => DB::raw("SUBSTR(email, 1, INSTR(email, '@') - 1)")]);
     }
 
     public function down(): void

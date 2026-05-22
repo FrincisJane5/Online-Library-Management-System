@@ -10,13 +10,17 @@ return new class extends Migration
         // Update existing Deactivated values first
         DB::table('users')->where('status', 'Deactivated')->update(['status' => 'Inactive']);
 
-        // Change the ENUM to replace Deactivated with Inactive
-        DB::statement("ALTER TABLE users MODIFY COLUMN status ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active'");
+        // SQLite does not support MODIFY COLUMN; the data update above is sufficient
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN status ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active'");
+        }
     }
 
     public function down(): void
     {
         DB::table('users')->where('status', 'Inactive')->update(['status' => 'Deactivated']);
-        DB::statement("ALTER TABLE users MODIFY COLUMN status ENUM('Active', 'Deactivated') NOT NULL DEFAULT 'Active'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN status ENUM('Active', 'Deactivated') NOT NULL DEFAULT 'Active'");
+        }
     }
 };
