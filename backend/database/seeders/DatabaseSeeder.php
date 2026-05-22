@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate([
             'username' => 'admin',
         ], [
-            'name' => 'Library Admin',
             'full_name' => 'Library Admin',
             'email' => 'admin@local.library',
             'password' => 'admin123',
@@ -26,15 +25,15 @@ class DatabaseSeeder extends Seeder
             'status' => 'Active',
         ]);
 
-        User::updateOrCreate([
-            'username' => 'staff',
-        ], [
-            'name' => 'Library Staff',
-            'full_name' => 'Library Staff',
-            'email' => 'staff@local.library',
-            'password' => 'staff123',
-            'role' => 'staff',
-            'status' => 'Active',
-        ]);
+        // User::updateOrCreate([
+        //     'username' => 'staff',
+        // ], [
+        //     'name' => 'Library Staff',
+        //     'full_name' => 'Library Staff',
+        //     'email' => 'staff@local.library',
+        //     'password' => 'staff123',
+        //     'role' => 'staff',
+        //     'status' => 'Active',
+        // ]);
     }
 }
