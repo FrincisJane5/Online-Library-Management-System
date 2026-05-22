@@ -13,13 +13,25 @@ class BooksTableSeeder extends Seeder
      *
      * @return void
      */
+    // Convert remarks like '0005-12-20', '0000-00-00', or other invalid dates to NULL
+    private function sanitizeDate(?string $date): ?string
+    {
+        if (!$date) return null;
+        // Must match YYYY-MM-DD with a valid year (>= 1000)
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && substr($date, 0, 4) >= '1000') {
+            return $date;
+        }
+        return null;
+    }
+
     public function run()
     {
-        
-
         DB::table('books')->delete();
-        
-        DB::table('books')->insertOrIgnore(array (
+
+        // Disable strict mode so invalid dates like '0000-00-00' are stored as NULL
+        DB::statement("SET SESSION sql_mode = ''");
+
+        $rows = array (
             0 => 
             array (
                 'id' => 1,
@@ -20544,8 +20556,14 @@ class BooksTableSeeder extends Seeder
                 'created_at' => NULL,
                 'updated_at' => NULL,
             ),
-        ));
-        
-        
+        );
+
+        // Sanitize all remarks dates before inserting — invalid formats like '0005-12-20' or '0000-00-00' become NULL
+        $rows = array_map(function ($row) {
+            $row['remarks'] = $this->sanitizeDate($row['remarks']);
+            return $row;
+        }, $rows);
+
+        DB::table('books')->insertOrIgnore($rows);
     }
 }
