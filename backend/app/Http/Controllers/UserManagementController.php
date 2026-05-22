@@ -86,7 +86,6 @@ class UserManagementController extends Controller
         ]);
 
         $updateData = [
-            'name'      => $validated['full_name'],
             'full_name' => $validated['full_name'],
             'email'     => $validated['email'],
             'username'  => $validated['username'],
