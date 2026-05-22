@@ -1,34 +1,42 @@
+// React hooks for state, side effects, and memoized filtering
 import { useState, useEffect, useMemo } from 'react';
+// Shared sidebar + header layout wrapper
 import Layout from './Layout';
 import { User } from '../types';
+// Lucide icons: search, add, edit, delete, close modal
 import { Search, Plus, Edit, Trash2, X } from 'lucide-react';
+// Shared axios instance
 import api from '../api/axios';
+// Pagination hook and component
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
 
+// Props for the BooksInventory page
 interface BooksInventoryProps {
   user: User;
   onLogout: () => void;
 }
 
+// Shape of a book record (extends the global Book type with extra inventory fields)
 interface Book {
   id: number;
-  call_number: string | null;
+  call_number: string | null;  // Library call number (e.g. "REF 001.5")
   title: string | null;
   author: string | null;
-  pages: number | null;
-  cost_price: number | null;
+  pages: number | null;        // Number of pages
+  cost_price: number | null;   // Purchase price in pesos
   publisher: string | null;
-  year: number | null;
-  remarks: string | null;
-  total: number;
-  available: number;
-  borrowed: number;
-  damaged: number;
-  lost: number;
-  status: 'Available' | 'Borrowed' | 'Damaged' | 'Lost';
+  year: number | null;         // Publication year
+  remarks: string | null;      // Inventory date or other notes
+  total: number;               // Total copies owned
+  available: number;           // Copies currently on the shelf
+  borrowed: number;            // Copies currently checked out
+  damaged: number;             // Copies marked as damaged
+  lost: number;                // Copies marked as lost
+  status: 'Available' | 'Borrowed' | 'Damaged' | 'Lost'; // Overall status
 }
 
+// Default empty form state for the add/edit modal
 const emptyForm = {
   call_number: '',
   title: '',
@@ -42,23 +50,31 @@ const emptyForm = {
   status: 'Available' as Book['status'],
 };
 
+/**
+ * BooksInventory — full CRUD management for the library book collection.
+ * Supports searching by title/author/call number and filtering by status.
+ * Duplicate call number detection is done client-side before sending to the API.
+ */
 export default function BooksInventory({ user, onLogout }: BooksInventoryProps) {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingBook, setEditingBook] = useState<Book | null>(null);
-  const [formData, setFormData] = useState(emptyForm);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [books, setBooks] = useState<Book[]>([]);                        // All books from the API
+  const [loading, setLoading] = useState(true);                          // True while fetching books
+  const [searchTerm, setSearchTerm] = useState('');                      // Keyword search filter
+  const [statusFilter, setStatusFilter] = useState('');                  // Status dropdown filter
+  const [showModal, setShowModal] = useState(false);                     // Controls add/edit modal
+  const [editingBook, setEditingBook] = useState<Book | null>(null);     // Book being edited (null = adding)
+  const [formData, setFormData] = useState(emptyForm);                   // Current form field values
+  const [formError, setFormError] = useState<string | null>(null);       // Error message in modal
+  const [formSubmitting, setFormSubmitting] = useState(false);           // True while form is saving
 
+  // Load books on first render
   useEffect(() => { fetchBooks(); }, []);
 
+  // Fetch all books from GET /api/books and normalize the response
   const fetchBooks = async () => {
     setLoading(true);
     try {
       const res = await api.get('/books');
+      // Handle both array and paginated object responses
       const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
       setBooks(data.map((b: any) => ({
         id: b.id,
@@ -84,14 +100,16 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
     }
   };
 
+  // Reset the form to its empty state and clear the editing target
   const resetForm = () => { setFormData(emptyForm); setEditingBook(null); };
 
+  // Handle form submission for both creating and editing a book
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSubmitting(true);
 
-    // Client-side duplicate call number check
+    // Client-side duplicate call number check before hitting the API
     const callNum = formData.call_number.trim();
     if (callNum) {
       const duplicate = books.find(
@@ -115,16 +133,17 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
         year:        formData.year ? Number(formData.year) : null,
         remarks:     formData.remarks || null,
         total:       Number(formData.total),
+        // When adding a new book, available = total; when editing, keep the existing available count
         available:   editingBook ? editingBook.available : Number(formData.total),
         status:      formData.status,
       };
       const res = editingBook
-        ? await api.put(`/books/${editingBook.id}`, payload)
-        : await api.post('/books', payload);
+        ? await api.put(`/books/${editingBook.id}`, payload)   // Update existing book
+        : await api.post('/books', payload);                    // Create new book
       if (res.status === 200 || res.status === 201) {
         setShowModal(false);
         resetForm();
-        fetchBooks();
+        fetchBooks(); // Refresh the list after save
       }
     } catch (err: any) {
       const errors = err.response?.data?.errors;
@@ -138,6 +157,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
     }
   };
 
+  // Populate the form with the selected book's data and open the edit modal
   const openEdit = (book: Book) => {
     setEditingBook(book);
     setFormData({
@@ -155,22 +175,26 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
     setShowModal(true);
   };
 
+  // Delete a book by ID after confirmation
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this book?')) return;
     try {
       await api.delete(`/books/${id}`);
-      setBooks(books.filter(b => b.id !== id));
+      setBooks(books.filter(b => b.id !== id)); // Remove from local state immediately
     } catch (err) { console.error(err); }
   };
 
+  // Filter books by search term and status — recomputed only when dependencies change
   const filtered = useMemo(() => books.filter(b =>
     (!searchTerm || [b.title, b.author, b.call_number].some(v => v?.toLowerCase().includes(searchTerm.toLowerCase()))) &&
     (!statusFilter || b.status === statusFilter)
   ), [books, searchTerm, statusFilter]);
 
   const { paged, page, totalPages, setPage, reset, total } = usePagination(filtered);
+  // Reset to page 1 whenever the filtered results change
   useEffect(() => { reset(); }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Returns the Tailwind badge color class for a given book status
   const statusColor = (s: string) => ({
     Available: 'bg-[#79C39F] text-white',
     Borrowed:  'bg-[#EF8B2D] text-white',
@@ -178,6 +202,7 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
     Lost:      'bg-[#9DA4A6] text-white',
   }[s] ?? 'bg-[#9DA4A6] text-white');
 
+  // Helper to render a labeled text/number input field in the modal form
   const field = (label: string, key: keyof typeof emptyForm, type = 'text', required = false) => (
     <div>
       <label className="block text-sm font-medium mb-1">{label}{required && <span className="text-red-500"> *</span>}</label>

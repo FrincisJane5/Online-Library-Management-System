@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * BorrowingRecord — represents one borrow/return transaction.
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class BorrowingRecord extends Model
 {
+    use SoftDeletes;
     /** Columns that can be mass-assigned */
     protected $fillable = [
         'book_id',              // FK to books table — the specific book copy borrowed

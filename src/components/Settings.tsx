@@ -1,44 +1,60 @@
+// React hooks for state and side effects
 import { useEffect, useState } from 'react';
+// Shared sidebar + header layout wrapper
 import Layout from './Layout';
 import { User } from '../types';
+// Lucide icons used in the settings page
 import { Save, Plus, Trash2, Edit, X } from 'lucide-react';
+// Shared axios instance
 import api from '../api/axios';
+// Toast notifications for save success/failure
 import { toast } from 'sonner';
 
+// Props for the Settings page
 interface SettingsProps {
   user: User;
   onLogout: () => void;
 }
 
+/**
+ * Settings — admin-only page for configuring library rules, hours, notifications, and programs.
+ * Loads current settings from the API on mount and saves changes via PUT /api/settings.
+ * Also manages degree programs (CRUD) used in the attendance and borrowing forms.
+ */
 export default function Settings({ user, onLogout }: SettingsProps) {
+  // All configurable settings fields
   const [settings, setSettings] = useState({
-    loanDuration: '7',
-    fineRate: '5',
-    damagedFine: '100',
-    lostFine: '500',
-    openTime: '08:00',
-    closeTime: '17:00',
-    emailNotifications: true,
-    smsNotifications: false,
-    libraryPolicies: ''
+    loanDuration: '7',          // Default borrow period in days
+    fineRate: '5',              // Fine per overdue day in pesos
+    damagedFine: '100',         // One-time fine for damaged books
+    lostFine: '500',            // One-time fine for lost books
+    openTime: '08:00',          // Library opening time
+    closeTime: '17:00',         // Library closing time
+    emailNotifications: true,   // Whether to send email reminders
+    smsNotifications: false,    // Whether to send SMS reminders
+    libraryPolicies: ''         // Free-text library policy content
   });
 
-  const [saved, setSaved] = useState(false);
-  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [saved, setSaved] = useState(false);                    // Unused — kept for future use
+  const [settingsLoading, setSettingsLoading] = useState(true); // True while fetching settings from API
   interface Program { id: number; code: string; name: string; total_years: number; }
-  const [programs, setPrograms]       = useState<Program[]>([]);
-  const [progForm, setProgForm]       = useState({ code: '', name: '', total_years: 4 });
-  const [editingProg, setEditingProg] = useState<Program | null>(null);
-  const [showProgModal, setShowProgModal] = useState(false);
-  const [progError, setProgError]     = useState('');
+  const [programs, setPrograms]       = useState<Program[]>([]);       // List of degree programs
+  const [progForm, setProgForm]       = useState({ code: '', name: '', total_years: 4 }); // Add/edit form state
+  const [editingProg, setEditingProg] = useState<Program | null>(null); // Program being edited (null = adding new)
+  const [showProgModal, setShowProgModal] = useState(false);            // Controls program modal visibility
+  const [progError, setProgError]     = useState('');                   // Error message in program modal
 
+  // Fetch all programs from GET /api/programs
   const fetchPrograms = () => api.get('/programs').then(r => setPrograms(r.data)).catch(console.error);
 
+  // Load programs on mount
   useEffect(() => { fetchPrograms(); }, []);
 
+  // Load current settings from GET /api/settings on mount
   useEffect(() => {
     api.get('/settings').then((res) => {
       const payload = res.data;
+      // Map snake_case API fields to camelCase state fields
       setSettings({
         loanDuration: String(payload.loan_duration ?? 7),
         fineRate: String(payload.fine_rate ?? 5),
@@ -53,6 +69,7 @@ export default function Settings({ user, onLogout }: SettingsProps) {
     }).catch(console.error).finally(() => setSettingsLoading(false));
   }, []);
 
+  // Save all settings via PUT /api/settings
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     api.put('/settings', {

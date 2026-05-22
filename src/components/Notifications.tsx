@@ -1,31 +1,40 @@
+// React hooks for state, side effects, and memoized values
 import { useEffect, useState, useMemo } from 'react';
+// Shared sidebar + header layout wrapper
 import Layout from './Layout';
 import { User } from '../types';
+// Lucide icons: search input icon, view detail icon, close modal icon
 import { Search, Eye, X } from 'lucide-react';
+// Shared axios instance with base URL and auth headers
 import api from '../api/axios';
+// Pagination hook and component
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
 
+// Props for the Notifications page
 interface NotificationsProps { user: User; onLogout: () => void; }
 
+// Shape of a single notification record returned by the API
 interface NotifRecord {
   id: number;
-  dateTime: string;
-  studentName: string;
-  email: string | null;
-  callNumber: string | null;
-  bookTitle: string;
-  type: 'Overdue' | 'Fine Reminder' | 'Damaged' | 'Lost';
-  message: string;
-  preview: string;
-  status: 'Sent' | 'Pending' | 'Failed';
+  dateTime: string;           // When the notification was sent
+  studentName: string;        // Recipient's name
+  email: string | null;       // Recipient's email address
+  callNumber: string | null;  // Call number of the related book
+  bookTitle: string;          // Title of the related book
+  type: 'Overdue' | 'Fine Reminder' | 'Damaged' | 'Lost'; // Notification category
+  message: string;            // Full email body
+  preview: string;            // Short preview shown in the table
+  status: 'Sent' | 'Pending' | 'Failed'; // Delivery status
 }
 
+// Tailwind color classes for each delivery status badge
 const STATUS_COLOR: Record<string, string> = {
   Sent:    'bg-green-100 text-green-700 border-green-200',
   Pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   Failed:  'bg-red-100 text-red-700 border-red-200',
 };
+// Tailwind color classes for each notification type badge
 const TYPE_COLOR: Record<string, string> = {
   'Overdue':      'bg-orange-100 text-orange-700 border-orange-200',
   'Fine Reminder':'bg-red-100 text-red-700 border-red-200',
@@ -33,14 +42,20 @@ const TYPE_COLOR: Record<string, string> = {
   'Lost':         'bg-slate-100 text-slate-700 border-slate-200',
 };
 
+/**
+ * Notifications — displays all email notifications sent to students.
+ * Supports filtering by keyword, status, and type.
+ * Clicking the eye icon opens a detail modal with the full email content.
+ */
 export default function Notifications({ user, onLogout }: NotificationsProps) {
-  const [notifications, setNotifications] = useState<NotifRecord[]>([]);
-  const [search, setSearch]               = useState('');
-  const [statusFilter, setStatusFilter]   = useState('');
-  const [typeFilter, setTypeFilter]       = useState('');
-  const [loading, setLoading]             = useState(true);
-  const [selected, setSelected]           = useState<NotifRecord | null>(null);
+  const [notifications, setNotifications] = useState<NotifRecord[]>([]); // All loaded notifications
+  const [search, setSearch]               = useState('');                 // Keyword filter
+  const [statusFilter, setStatusFilter]   = useState('');                 // Status filter (Sent/Pending/Failed)
+  const [typeFilter, setTypeFilter]       = useState('');                 // Type filter (Overdue/etc.)
+  const [loading, setLoading]             = useState(true);               // Loading state
+  const [selected, setSelected]           = useState<NotifRecord | null>(null); // Currently viewed notification
 
+  // Fetch notifications from the API with optional filters as query params
   const fetchNotifications = (s = search, st = statusFilter, t = typeFilter) => {
     setLoading(true);
     api.get('/notifications', { params: { search: s || undefined, status: st || undefined, type: t || undefined } })
@@ -50,8 +65,10 @@ export default function Notifications({ user, onLogout }: NotificationsProps) {
   };
 
   const { paged, page, totalPages, setPage, reset, total } = usePagination(notifications);
+  // Reset to page 1 whenever the notifications list changes
   useEffect(() => { reset(); }, [notifications]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load all notifications on first render
   useEffect(() => { fetchNotifications('', '', ''); }, []);
 
   return (

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * ActivityLog — records every significant action performed in the system.
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ActivityLog extends Model
 {
+    use SoftDeletes;
     /** Columns that can be mass-assigned via create() or fill() */
     protected $fillable = [
         'user_id',      // FK to users table (nullable — log survives if user is deleted)

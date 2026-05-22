@@ -17,19 +17,19 @@ use Illuminate\Support\Carbon;
 class PurgeOldRecords extends Command
 {
     protected $signature   = 'library:purge-old-records';
-    protected $description = 'Delete borrowing details, attendance, activity logs, and notifications older than 30 days';
+    protected $description = 'Soft-delete borrowing details, attendance, activity logs, and notifications older than 30 days (hidden from UI, kept in database)';
 
     public function handle(): void
     {
         // Calculate the cutoff timestamp: anything created before this is deleted
         $cutoff = Carbon::now()->subDays(30);
 
-        // Delete from each table and report the count of deleted rows
+        // Soft-delete records older than 30 days — rows are hidden from the UI but kept in the database
         $counts = [
-            'borrowing records' => BorrowingRecord::where('created_at', '<', $cutoff)->delete(),
-            'attendance'        => Attendance::where('created_at', '<', $cutoff)->delete(),
-            'activity logs'     => ActivityLog::where('created_at', '<', $cutoff)->delete(),
-            'notifications'     => NotificationLog::where('created_at', '<', $cutoff)->delete(),
+            'borrowing records' => BorrowingRecord::where('created_at', '<', $cutoff)->whereNull('deleted_at')->update(['deleted_at' => now()]),
+            'attendance'        => Attendance::where('created_at', '<', $cutoff)->whereNull('deleted_at')->update(['deleted_at' => now()]),
+            'activity logs'     => ActivityLog::where('created_at', '<', $cutoff)->whereNull('deleted_at')->update(['deleted_at' => now()]),
+            'notifications'     => NotificationLog::where('created_at', '<', $cutoff)->whereNull('deleted_at')->update(['deleted_at' => now()]),
         ];
 
         foreach ($counts as $label => $deleted) {

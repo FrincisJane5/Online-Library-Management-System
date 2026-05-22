@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Attendance — records each library visit by a student or patron.
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Attendance extends Model
 {
+    use SoftDeletes;
     /** Columns that can be mass-assigned */
     protected $fillable = [
         'student_id', // FK to students table (nullable — walk-in visitors may not have a student record)

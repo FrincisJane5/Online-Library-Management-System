@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * NotificationLog — records every overdue reminder notification sent to a borrower.
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class NotificationLog extends Model
 {
+    use SoftDeletes;
     /** Columns that can be mass-assigned */
     protected $fillable = [
         'borrowing_record_id', // FK to borrowing_records — which transaction this reminder is for

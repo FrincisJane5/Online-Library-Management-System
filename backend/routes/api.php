@@ -16,8 +16,9 @@ use Illuminate\Support\Facades\Route;
 
 // ─── Public routes (no authentication required) ───────────────────────────────
 Route::post('/auth/login',           [AuthController::class, 'login']);           // Staff/admin login
-Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);  // Verify username, get token
-Route::post('/auth/reset-password',  [ForgotPasswordController::class, 'reset']); // Set new password with token
+Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send']);      // Send OTP to email
+Route::post('/auth/verify-otp',      [ForgotPasswordController::class, 'verifyOtp']); // Verify OTP, get reset token
+Route::post('/auth/reset-password',  [ForgotPasswordController::class, 'reset']);     // Set new password with token
 Route::post('/attendance',           [AttendanceController::class, 'store']);     // Submit attendance form
 Route::get('/attendance/check-id',   [AttendanceController::class, 'checkId']);   // Duplicate ID check
 Route::get('/attendance/lookup',     [AttendanceController::class, 'lookup']);    // Auto-fill by ID

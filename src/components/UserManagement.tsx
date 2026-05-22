@@ -1,17 +1,24 @@
+// React hooks for state and side effects
 import { useEffect, useState } from 'react';
+// Shared sidebar + header layout wrapper
 import Layout from './Layout';
 import { User } from '../types';
+// Lucide icons: add button, warning icon, close modal icon
 import { Plus, AlertCircle, X } from 'lucide-react';
+// Shared axios instance
 import api from '../api/axios';
+// Pagination hook and component
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
 
+// Props for the UserManagement page
 interface UserManagementProps {
-  user: User;
-  onLogout: () => void;
-  onCurrentUserUpdated?: (user: User) => void;
+  user: User;                                          // Currently logged-in admin
+  onLogout: () => void;                               // Called when admin logs out
+  onCurrentUserUpdated?: (user: User) => void;        // Called when the admin edits their own account
 }
 
+// Shape of a staff user record returned by GET /api/users
 interface StaffUser {
   id: number;
   fullName: string;
@@ -23,18 +30,25 @@ interface StaffUser {
   lastLogin: string;
 }
 
+// Default empty form state for the add/edit modal
 const emptyForm = { fullName: '', email: '', username: '', password: '', role: 'staff' as 'staff' | 'admin' };
 
+/**
+ * UserManagement — admin-only page for managing library staff accounts.
+ * Supports creating new accounts, editing existing ones, and activating/deactivating staff.
+ * Admins cannot change a user's role after creation, and cannot deactivate other admins.
+ */
 export default function UserManagement({ user, onLogout, onCurrentUserUpdated }: UserManagementProps) {
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formData, setFormData] = useState(emptyForm);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);       // All staff accounts
+  const [showModal, setShowModal] = useState(false);                    // Controls add/edit modal visibility
+  const [editingUser, setEditingUser] = useState<StaffUser | null>(null); // User being edited (null = adding new)
+  const [isLoading, setIsLoading] = useState(false);                   // True while form is submitting
+  const [fetchLoading, setFetchLoading] = useState(true);              // True while loading users from API
+  const [fetchError, setFetchError] = useState<string | null>(null);   // Error message from fetch
+  const [formError, setFormError] = useState<string | null>(null);     // Error message from form submit
+  const [formData, setFormData] = useState(emptyForm);                 // Current form field values
 
+  // Fetch all staff users from GET /api/users
   const fetchUsers = async () => {
     setFetchError(null);
     setFetchLoading(true);
@@ -42,6 +56,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
       const res = await api.get('/users');
       setStaffUsers(Array.isArray(res.data) ? res.data : []);
     } catch (error: any) {
+      // Show a helpful message if the backend is unreachable
       setFetchError(
         error.code === 'ERR_NETWORK'
           ? 'Cannot reach the backend. Make sure the Laravel server is running.'
@@ -52,28 +67,34 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
     }
   };
 
+  // Load users on first render
   useEffect(() => { fetchUsers(); }, []);
 
   const { paged, page, totalPages, setPage, total } = usePagination(staffUsers);
 
+  // Reset the form to its empty state and clear the editing target
   const resetForm = () => { setFormData(emptyForm); setEditingUser(null); };
 
+  // Handle form submission for both creating and editing a user
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setFormError(null);
     try {
       if (editingUser) {
+        // Edit: only allow updating name, email, and username (not role or password)
         const payload: any = {
           full_name: formData.fullName,
           email: formData.email,
           username: formData.username,
         };
         const res = await api.put(`/users/${editingUser.id}`, payload);
+        // If the admin edited their own account, update the global user state
         if (editingUser.id.toString() === user.id) {
           onCurrentUserUpdated?.({ ...user, fullName: res.data.fullName, username: res.data.username });
         }
       } else {
+        // Create: send all fields including password and role
         await api.post('/users', {
           full_name: formData.fullName,
           email: formData.email,
@@ -84,7 +105,7 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
       }
       setShowModal(false);
       resetForm();
-      await fetchUsers();
+      await fetchUsers(); // Refresh the list after save
     } catch (err: any) {
       setFormError(err.response?.data?.message || 'Failed to save account.');
     } finally {
@@ -92,15 +113,17 @@ export default function UserManagement({ user, onLogout, onCurrentUserUpdated }:
     }
   };
 
+  // Toggle a user's status between Active and Inactive via PATCH /api/users/:id/status
   const handleStatusChange = async (su: StaffUser, status: 'Active' | 'Inactive') => {
     try {
       await api.patch(`/users/${su.id}/status`, { status });
-      await fetchUsers();
+      await fetchUsers(); // Refresh the list after status change
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to update status.');
     }
   };
 
+  // Reusable Tailwind class strings for form inputs and labels
   const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm';
   const labelCls = 'block text-slate-700 text-sm font-medium mb-1';
 
