@@ -49,9 +49,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     setStepLoading(true);
     try {
       await api.post('/auth/forgot-password', { email: forgotEmail });
-      setStep('otp'); // Always advance — backend never reveals if email exists
-    } catch {
       setStep('otp');
+    } catch (err: any) {
+      setStepError(err.response?.data?.message || 'Email not found.');
     } finally {
       setStepLoading(false);
     }
@@ -195,10 +195,11 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <form onSubmit={handleSendOtp} className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-[#4B4C58] mb-1">Email Address</label>
-                    <input type="email" required value={forgotEmail} onChange={e => setForgotEmail(e.target.value)}
+                    <input type="email" required value={forgotEmail} onChange={e => { setForgotEmail(e.target.value); setStepError(''); }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C] text-sm"
                       placeholder="Enter your email" />
                   </div>
+                  {stepError && <p className="text-red-600 text-sm">{stepError}</p>}
                   <button type="submit" disabled={stepLoading}
                     className="w-full bg-[#1B764C] hover:bg-[#016937] disabled:opacity-60 text-white py-2 rounded-lg text-sm transition-colors">
                     {stepLoading ? 'Sending...' : 'Send Code'}

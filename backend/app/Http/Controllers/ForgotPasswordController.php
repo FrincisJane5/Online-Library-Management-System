@@ -23,9 +23,8 @@ class ForgotPasswordController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // Always return success to avoid leaking which emails are registered
         if (!$user) {
-            return response()->json(['message' => 'If that email is registered, a code has been sent.']);
+            return response()->json(['message' => 'No account found with that email address.'], 422);
         }
 
         // Generate a 6-digit OTP with 15-minute expiry

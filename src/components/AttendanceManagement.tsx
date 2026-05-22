@@ -25,7 +25,6 @@ interface AttendanceRecord {
   created_at: string;
 }
 
-const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 const PURPOSES    = [
   'Research', 'Borrowing / Returning Books', 'Reading / Studying',
   'Internet / Computer Use', 'Group Study', 'Thesis / Capstone Work',
@@ -35,7 +34,7 @@ const PURPOSES    = [
 export default function AttendanceManagement({ user, onLogout }: AttendanceManagementProps) {
   const [data, setData]           = useState<AttendanceRecord[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [programs, setPrograms]   = useState<{ code: string }[]>([]);
+  const [programs, setPrograms]   = useState<{ code: string; year_levels: string[] }[]>([]);
   const [search, setSearch]       = useState('');
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
@@ -170,7 +169,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               <label className="block mb-2 text-sm">Year Level</label>
               <select value={year} onChange={e => setYear(e.target.value)} className="w-full p-2 border rounded-lg">
                 <option value="">All</option>
-                {YEAR_LEVELS.map(y => <option key={y}>{y}</option>)}
+                {Array.from(new Set(programs.flatMap(p => p.year_levels))).map(y => <option key={y}>{y}</option>)}
               </select>
             </div>
             <div>
