@@ -10,16 +10,25 @@ class StudentSeeder extends Seeder
     public function run(): void
     {
         $students = [
-            ['student_id_number' => '2024-0001', 'name' => 'Juan dela Cruz',      'email' => 'juan.delacruz@lcc.edu.ph',    'course' => 'BSIT',   'year_level' => '1st Year', 'contact_number' => '09171234567'],
-            ['student_id_number' => '2024-0002', 'name' => 'Maria Santos',        'email' => 'maria.santos@lcc.edu.ph',      'course' => 'BSED',   'year_level' => '2nd Year', 'contact_number' => '09182345678'],
-            ['student_id_number' => '2024-0003', 'name' => 'Jose Reyes',          'email' => 'jose.reyes@lcc.edu.ph',        'course' => 'BSN',    'year_level' => '3rd Year', 'contact_number' => '09193456789'],
-            ['student_id_number' => '2024-0004', 'name' => 'Ana Garcia',          'email' => 'ana.garcia@lcc.edu.ph',        'course' => 'BSBA',   'year_level' => '1st Year', 'contact_number' => '09204567890'],
-            ['student_id_number' => '2024-0005', 'name' => 'Pedro Mendoza',       'email' => 'pedro.mendoza@lcc.edu.ph',     'course' => 'BSCRIM', 'year_level' => '2nd Year', 'contact_number' => '09215678901'],
-            ['student_id_number' => '2024-0006', 'name' => 'Rosa Villanueva',     'email' => 'rosa.villanueva@lcc.edu.ph',   'course' => 'BSIT',   'year_level' => '3rd Year', 'contact_number' => '09226789012'],
-            ['student_id_number' => '2024-0007', 'name' => 'Carlos Fernandez',   'email' => 'carlos.fernandez@lcc.edu.ph',  'course' => 'BSCS',   'year_level' => '4th Year', 'contact_number' => '09237890123'],
-            ['student_id_number' => '2024-0008', 'name' => 'Liza Ramos',         'email' => 'liza.ramos@lcc.edu.ph',        'course' => 'BEED',   'year_level' => '1st Year', 'contact_number' => '09248901234'],
-            ['student_id_number' => '2024-0009', 'name' => 'Marco Torres',       'email' => 'marco.torres@lcc.edu.ph',      'course' => 'BSHM',   'year_level' => '2nd Year', 'contact_number' => '09259012345'],
-            ['student_id_number' => '2024-0010', 'name' => 'Elena Cruz',         'email' => 'elena.cruz@lcc.edu.ph',        'course' => 'BSN',    'year_level' => '4th Year', 'contact_number' => '09260123456'],
+            [
+    ['student_id_number' => '2024005431', 'name' => 'Joshane Asuela Marabe', 'email' => 'joshanemarabe@gmail.com', 'year_level' => '2nd Year', 'contact_number' => '09564837822'],
+    ['student_id_number' => '2023001491', 'name' => 'Frenchenette Tapar Judilla', 'email' => 'frenchenettej@gmail.com', 'year_level' => '3rd Year', 'contact_number' => '09911380063'],
+    ['student_id_number' => '2024004109', 'name' => 'Rodz Patrick Robenn Ancog Masudiot', 'email' => 'rmasudiot@gmail.com', 'year_level' => '2nd Year', 'contact_number' => '09169966740'],
+    ['student_id_number' => '2025006852', 'name' => 'Ejjy Abuyen', 'email' => 'abuyenejjy@gmail.com', 'year_level' => '1st Year', 'contact_number' => '09852336875'],
+    ['student_id_number' => '2023002739', 'name' => 'Reshil Napaliacan Sedorifa', 'email' => 'rachelsedorifa36@gmail.com', 'year_level' => '3rd Year', 'contact_number' => '09359221035'],
+    ['student_id_number' => '2023001481', 'name' => 'April Mae Vismanos', 'email' => 'aprilmaevismanos504@gmail.com', 'year_level' => '3rd Year', 'contact_number' => '09096889746'],
+    ['student_id_number' => '2024004889', 'name' => 'Roy Fel Lipar Villanueva', 'email' => 'rhoylipar@gmail.com', 'year_level' => '2nd Year', 'contact_number' => '09276452289'],
+    ['student_id_number' => '2023003433', 'name' => 'Gilmark Laude Cruz', 'email' => 'gilmarklcruz81@gmajlil.com', 'year_level' => '4th Year', 'contact_number' => '09635524913'],
+    ['student_id_number' => '2024004709', 'name' => 'Crystelle Micah Curay Moleta', 'email' => 'crystellemicahmoleta@gmail.com', 'year_level' => '2nd Year', 'contact_number' => '09092739761'],
+    ['student_id_number' => '2025006756', 'name' => 'Kathyrine Bandolon Dela Cruz', 'email' => 'kathyrinedelacruz00@gmail.com', 'year_level' => '1st Year', 'contact_number' => '09777046497'],
+    ['student_id_number' => '2024004215', 'name' => 'REAH JANE GUMAHIN CRESINO', 'email' => 'cresinoreahjane@gmail.com', 'year_level' => '2nd Year', 'contact_number' => '09388877303'],
+    ['student_id_number' => '2023002889', 'name' => 'Frincis Jane Panimdim Omadley', 'email' => 'janeomadley@gmail.com', 'year_level' => '3rd Year', 'contact_number' => '09971978830'],
+    ['student_id_number' => '2023004071', 'name' => 'Idyll Claire Curay Moleta', 'email' => 'moletaidyllclaire@gmail.com', 'year_level' => '3rd Year', 'contact_number' => '09486955714'],
+    ['student_id_number' => '2023001619', 'name' => 'Jenny Rose Relabo Zabala', 'email' => 'jennyrosezabala1@gmail.com', 'year_level' => '3rd Year', 'contact_number' => '09944059669'],
+    ['student_id_number' => '2025007852', 'name' => 'CHARIZ SIMPLE PILONGO', 'email' => 'charizpilongo56@gmail.com', 'year_level' => '1st Year', 'contact_number' => '09369482023'],
+    ['student_id_number' => '2024005625', 'name' => 'elmer etang tolomia Jr.', 'email' => 'tolomia098@gmail.com', 'year_level' => '4th Year', 'contact_number' => '09700404410'],
+    ['student_id_number' => '2024005857', 'name' => 'Gideon Mesias Cabinbin Jr.', 'email' => 'cabinbinjrgideon@gmail.com', 'year_level' => '4th Year', 'contact_number' => '09918570030'],
+]
         ];
 
         foreach ($students as $student) {
