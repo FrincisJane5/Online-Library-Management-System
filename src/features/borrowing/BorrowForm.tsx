@@ -22,6 +22,12 @@ const EMPTY_FORM = {
   dateBorrowed: today(), dueDate: '',
 };
 
+function addDays(dateStr: string, days: number) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
 export default function BorrowForm({ onSuccess, onError }: Props) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'not_found'>('idle');
@@ -32,9 +38,15 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const debouncedQuery = useDebounce(bookQuery);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loanDuration, setLoanDuration] = useState(7);
 
   useEffect(() => {
     api.get('/programs').then(r => setPrograms(r.data)).catch(() => {});
+    api.get('/settings').then(r => {
+      const days = Number(r.data.loan_duration ?? 7);
+      setLoanDuration(days);
+      setForm(f => ({ ...f, dueDate: addDays(f.dateBorrowed, days) }));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -79,8 +91,14 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (!selectedBook) { onError({ response: { data: { message: 'Please select a book from the search results.' } } }); return; }
-    if (attendedToday === false) { onError({ response: { data: { message: 'Student has not attended the library today. Attendance is required before borrowing.' } } }); return; }
+    if (!selectedBook) { onError({ response: { data: { message: 'Please select a book from the search results.' } } }); setLoading(false); return; }
+    if (attendedToday === false) { onError({ response: { data: { message: 'Student has not attended the library today. Attendance is required before borrowing.' } } }); setLoading(false); return; }
+    if (form.dueDate <= form.dateBorrowed) {
+      setForm(f => ({ ...f, dueDate: addDays(f.dateBorrowed, loanDuration) }));
+      onError({ response: { data: { message: `Due date must be after the borrow date. It has been reset to the default (${loanDuration} days).` } } });
+      setLoading(false);
+      return;
+    }
     try {
       await borrowingService.borrow({
         student_name:   form.studentName,
@@ -224,7 +242,8 @@ export default function BorrowForm({ onSuccess, onError }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-slate-700 mb-2">Date Borrowed</label>
-          <input type="date" {...field('dateBorrowed')} required className={`w-full ${inputCls}`} />
+          <input type="date" value={form.dateBorrowed} readOnly
+            className={`w-full ${inputCls} bg-slate-50 cursor-not-allowed`} />
         </div>
         <div>
           <label className="block text-slate-700 mb-2">Due Date</label>

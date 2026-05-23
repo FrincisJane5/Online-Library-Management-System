@@ -24,9 +24,10 @@ class DashboardController extends Controller
         $monday   = Carbon::now('Asia/Manila')->startOfWeek(Carbon::MONDAY);
         $saturday = (clone $monday)->addDays(5);
 
-        // Fetch daily attendance totals for Mon–Sat, keyed by date string
-        $attendanceRaw = Attendance::selectRaw('DATE(created_at) as date, COUNT(*) as total')
-            ->whereBetween('created_at', [$monday->copy()->startOfDay(), $saturday->copy()->endOfDay()])
+        // Fetch daily attendance totals for Mon–Sat, keyed by Manila date string
+        // Convert created_at to Manila time before grouping by date to avoid UTC mismatch
+        $attendanceRaw = Attendance::selectRaw("DATE(CONVERT_TZ(created_at, '+00:00', '+08:00')) as date, COUNT(*) as total")
+            ->whereBetween('created_at', [$monday->copy()->startOfDay()->utc(), $saturday->copy()->endOfDay()->utc()])
             ->groupBy('date')
             ->orderBy('date', 'ASC')
             ->get()
@@ -59,8 +60,13 @@ class DashboardController extends Controller
         ]);
 
         // Today's attendance grouped by course for the department bar chart
+        // Use UTC range covering the full Manila day to avoid timezone mismatch on the server
+        $todayManila = Carbon::now('Asia/Manila');
+        $startUtc    = $todayManila->copy()->startOfDay()->utc();
+        $endUtc      = $todayManila->copy()->endOfDay()->utc();
+
         $byDept = Attendance::selectRaw('course, COUNT(*) as total')
-            ->whereDate('created_at', now('Asia/Manila')->toDateString())
+            ->whereBetween('created_at', [$startUtc, $endUtc])
             ->whereNotNull('course')
             ->groupBy('course')
             ->orderByDesc('total')

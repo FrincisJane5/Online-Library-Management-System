@@ -39,11 +39,12 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
   const [purpose, setPurpose]     = useState('');
-  // Always use the LAN IP for the QR code so phones can reach it regardless of
-  // whether the admin opened the app via localhost or the network address.
-  const lanOrigin = `${window.location.protocol}//${window.location.hostname === 'localhost' ? '192.168.100.101' : window.location.hostname}:${window.location.port}`;
-  const [qrUrl] = useState(lanOrigin + '/LccLibraryAttendance');
-  const qrRef   = useRef<HTMLDivElement>(null);
+  const [lanUrl, setLanUrl] = useState('');
+  const qrRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api.get('/network-url').then(r => setLanUrl(r.data.url + '/LccLibraryAttendance')).catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -63,9 +64,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   // Reset to page 1 whenever filters change
   useEffect(() => { reset(); }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onlineUrl = qrUrl;
-
-  const printQR = () => {
+  const printQR = (url: string) => {
     const svgEl = qrRef.current?.querySelector('svg');
     if (!svgEl) return;
     const win = window.open('', '_blank')!;
@@ -81,7 +80,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
       <body>
         <h1>Scan to fill out the<br/>Library Attendance Form</h1>
         ${svgEl.outerHTML}
-        <p>${qrUrl}</p>
+        <p>${url}</p>
         <p style="font-size:12px;color:#999">Legacy College of Compostela — Library Management System</p>
       </body></html>`);
     win.document.close();
@@ -129,16 +128,16 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
           <div className="flex-1">
             <h3 className="text-[#4B4C58] font-semibold mb-1">Online Attendance via QR</h3>
             <p className="text-sm text-[#9DA4A6] mb-3">Students scan this QR code to fill out the attendance form on their phone.</p>
-            <a href={onlineUrl} target="_blank" rel="noreferrer" className="text-[#1B764C] underline text-sm block mb-3">
-              {onlineUrl}
-            </a>
-            <button onClick={printQR}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1B764C] hover:bg-[#016937] text-white rounded-lg text-sm transition-colors">
-              <Printer className="w-4 h-4" /> Print QR Code
-            </button>
+            {lanUrl && <>
+              <a href={lanUrl} target="_blank" rel="noreferrer" className="text-[#1B764C] underline text-sm block mb-3">{lanUrl}</a>
+              <button onClick={() => printQR(lanUrl)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1B764C] hover:bg-[#016937] text-white rounded-lg text-sm transition-colors">
+                <Printer className="w-4 h-4" /> Print QR Code
+              </button>
+            </>}
           </div>
           <div ref={qrRef} className="flex-shrink-0">
-            <QRCodeSVG value={qrUrl} size={120} level="H" includeMargin />
+            {lanUrl && <QRCodeSVG value={lanUrl} size={120} level="H" includeMargin />}
           </div>
         </div>
 
