@@ -23,8 +23,8 @@ Route::post('/attendance',           [AttendanceController::class, 'store']);   
 Route::get('/attendance/check-id',   [AttendanceController::class, 'checkId']);   // Duplicate ID check
 Route::get('/attendance/lookup',     [AttendanceController::class, 'lookup']);    // Auto-fill by ID
 Route::get('/programs',              [ProgramController::class, 'index']);        // Course list for dropdowns
-Route::get('/network-url',           fn() => response()->json([                  // LAN IP for QR code generation
-    'url' => 'http://' . gethostbyname(gethostname()) . ':3000',
+Route::get('/network-url', fn(Illuminate\Http\Request $r) => response()->json([  // Base URL for QR code generation
+    'url' => $r->getSchemeAndHttpHost(),
 ]));
 
 // ─── Staff + Admin routes ───────────────────────────────────────────'──────────
