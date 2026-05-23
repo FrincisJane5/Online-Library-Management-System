@@ -45,7 +45,7 @@ const emptyForm = {
   cost_price: '',
   publisher: '',
   year: '',
-  remarks: '',
+  remarks: new Date().toISOString().split('T')[0],
   total: 1,
   status: 'Available' as Book['status'],
 };
@@ -307,8 +307,8 @@ export default function BooksInventory({ user, onLogout }: BooksInventoryProps) 
               </div>
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {field('Call Number', 'call_number')}
-                  {field('Title', 'title')}
+                  {field('Call Number', 'call_number', 'text', true)}
+                  {field('Title', 'title', 'text', true)}
                   {field('Author', 'author')}
                   {field('Publisher', 'publisher')}
                   {field('Year', 'year', 'number')}

@@ -179,14 +179,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               </select>
             </div>
           </div>
-          <div className="flex gap-3">
-            <button onClick={handleExport} className="bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
-              <Download size={16} /> Export CSV
-            </button>
-            <button onClick={handlePrint} className="border px-4 py-2 rounded-lg flex items-center gap-2 text-sm">
-              <Printer size={16} /> Print Report
-            </button>
-          </div>
+
         </div>
 
         {/* Table */}
