@@ -4,8 +4,13 @@ export interface User {
   id: string;           // Unique identifier from the database
   username: string;     // Login username
   fullName: string;     // Display name shown in the header
+  firstName?: string;   // First name
+  lastName?: string;    // Last name
   role: 'admin' | 'staff'; // Determines which routes and features are accessible
   status?: 'Active' | 'Inactive'; // Optional — used in User Management to enable/disable accounts
+  email?: string;       // Email address — shown in the profile dropdown
+  contactNumber?: string; // Contact number — shown in the profile dropdown
+  profilePicture?: string; // Profile picture URL/path
 }
 
 // ─── Book ─────────────────────────────────────────────────────────────────────

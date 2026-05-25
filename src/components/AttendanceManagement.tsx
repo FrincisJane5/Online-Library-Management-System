@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Search, Download, Printer } from 'lucide-react';
+import { Search, Download, Printer, Users, Calendar, Filter } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../api/axios';
 import { exportCSV } from '../utils';
@@ -25,7 +25,7 @@ interface AttendanceRecord {
   created_at: string;
 }
 
-const PURPOSES    = [
+const PURPOSES = [
   'Research', 'Borrowing / Returning Books', 'Reading / Studying',
   'Internet / Computer Use', 'Group Study', 'Thesis / Capstone Work',
   'Others',
@@ -39,7 +39,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
   const [course, setCourse]       = useState('');
   const [year, setYear]           = useState('');
   const [purpose, setPurpose]     = useState('');
-  const [lanUrl, setLanUrl] = useState('');
+  const [lanUrl, setLanUrl]       = useState('');
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,13 +55,12 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
 
   const filtered = useMemo(() => data.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) &&
-    (!course  || item.course   === course) &&
-    (!year    || item.year     === year) &&
-    (!purpose || item.purpose  === purpose)
+    (!course  || item.course  === course) &&
+    (!year    || item.year    === year) &&
+    (!purpose || item.purpose === purpose)
   ), [data, search, course, year, purpose]);
 
   const { paged, page, totalPages, setPage, reset, total } = usePagination(filtered);
-  // Reset to page 1 whenever filters change
   useEffect(() => { reset(); }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const printQR = (url: string) => {
@@ -115,99 +114,155 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
     win?.print();
   };
 
+  const hasActiveFilters = course || year || purpose || search;
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-[#4B4C58] mb-2">Attendance Records</h2>
-          <p className="text-[#9DA4A6]">View and manage library attendance logs.</p>
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-[#4B4C58] font-bold text-2xl mb-1">Attendance Records</h2>
+            <p className="text-[#9DA4A6] text-sm">View and manage library attendance logs.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 border border-[#9DA4A6] text-[#4B4C58] rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+            <button onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2 border border-[#9DA4A6] text-[#4B4C58] rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              <Printer className="w-4 h-4" /> Print
+            </button>
+          </div>
         </div>
 
-        {/* QR Card */}
-        <div className="bg-white p-5 rounded-lg border border-[#9DA4A6] flex items-center justify-between gap-4">
-          <div className="flex-1">
-            <h3 className="text-[#4B4C58] font-semibold mb-1">Online Attendance via QR</h3>
-            <p className="text-sm text-[#9DA4A6] mb-3">Students scan this QR code to fill out the attendance form on their phone.</p>
-            {lanUrl && <>
-              <a href={lanUrl} target="_blank" rel="noreferrer" className="text-[#1B764C] underline text-sm block mb-3">{lanUrl}</a>
-              <button onClick={() => printQR(lanUrl)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1B764C] hover:bg-[#016937] text-white rounded-lg text-sm transition-colors">
-                <Printer className="w-4 h-4" /> Print QR Code
-              </button>
-            </>}
+        {/* Stats + QR Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* Total count card */}
+          <div className="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#1B764C]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Users className="w-6 h-6 text-[#1B764C]" />
+            </div>
+            <div>
+              <p className="text-[#9DA4A6] text-sm">Total Records</p>
+              <p className="text-[#4B4C58] text-2xl font-bold">{data.length}</p>
+            </div>
           </div>
-          <div ref={qrRef} className="flex-shrink-0">
-            {lanUrl && <QRCodeSVG value={lanUrl} size={120} level="H" includeMargin />}
+
+          {/* Today's count */}
+          <div className="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-sm flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#EF8B2D]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-6 h-6 text-[#EF8B2D]" />
+            </div>
+            <div>
+              <p className="text-[#9DA4A6] text-sm">Today's Visits</p>
+              <p className="text-[#4B4C58] text-2xl font-bold">
+                {data.filter(r => r.created_at.startsWith(new Date().toISOString().slice(0, 10))).length}
+              </p>
+            </div>
           </div>
+
+          {/* QR Card */}
+          <div className="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-sm flex items-center gap-4">
+            <div ref={qrRef} className="flex-shrink-0">
+              {lanUrl && <QRCodeSVG value={lanUrl} size={80} level="H" includeMargin />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[#4B4C58] font-semibold text-sm mb-1">Attendance QR Code</p>
+              {lanUrl && (
+                <>
+                  <a href={lanUrl} target="_blank" rel="noreferrer"
+                    className="text-[#1B764C] underline text-xs block truncate mb-2">{lanUrl}</a>
+                  <button onClick={() => printQR(lanUrl)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1B764C] hover:bg-[#016937] text-white rounded-lg text-xs transition-colors">
+                    <Printer className="w-3.5 h-3.5" /> Print QR
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-[#9DA4A6]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-            <div className="lg:col-span-2">
-              <label className="block mb-2 text-sm">Search by Name</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search student name..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-10 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B764C]"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block mb-2 text-sm">Course</label>
-              <select value={course} onChange={e => setCourse(e.target.value)} className="w-full p-2 border rounded-lg">
-                <option value="">All</option>
-                {programs.map(p => <option key={p.code} value={p.code}>{p.code}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block mb-2 text-sm">Year Level</label>
-              <select value={year} onChange={e => setYear(e.target.value)} className="w-full p-2 border rounded-lg">
-                <option value="">All</option>
-                {Array.from(new Set(programs.flatMap(p => p.year_levels))).map(y => <option key={y}>{y}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block mb-2 text-sm">Purpose</label>
-              <select value={purpose} onChange={e => setPurpose(e.target.value)} className="w-full p-2 border rounded-lg">
-                <option value="">All</option>
-                {PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-[#E5E7EB]">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-4 h-4 text-[#9DA4A6]" />
+            <span className="text-sm font-medium text-[#4B4C58]">Filter Records</span>
+            {hasActiveFilters && (
+              <button onClick={() => { setSearch(''); setCourse(''); setYear(''); setPurpose(''); }}
+                className="ml-auto text-xs text-[#D72A24] hover:underline">
+                Clear all
+              </button>
+            )}
           </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="sm:col-span-2 lg:col-span-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B764C] focus:border-transparent"
+              />
+            </div>
+            <select value={course} onChange={e => setCourse(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B764C] focus:border-transparent text-[#4B4C58]">
+              <option value="">All Courses</option>
+              {programs.map(p => <option key={p.code} value={p.code}>{p.code}</option>)}
+            </select>
+            <select value={year} onChange={e => setYear(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B764C] focus:border-transparent text-[#4B4C58]">
+              <option value="">All Year Levels</option>
+              {Array.from(new Set(programs.flatMap(p => p.year_levels))).map(y => <option key={y}>{y}</option>)}
+            </select>
+            <select value={purpose} onChange={e => setPurpose(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B764C] focus:border-transparent text-[#4B4C58]">
+              <option value="">All Purposes</option>
+              {PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          {filtered.length !== data.length && (
+            <p className="text-xs text-[#9DA4A6] mt-3">
+              Showing {filtered.length} of {data.length} records
+            </p>
+          )}
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg border border-[#9DA4A6] overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
                   {['Date & Time', 'ID Number', 'Student Name', 'Email', 'Phone', 'Course', 'Year', 'Purpose'].map(h => (
-                    <th key={h} className="p-3 text-left text-sm font-medium text-gray-700">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#9DA4A6] uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-50">
                 {loading ? (
-                  <tr><td colSpan={8} className="text-center p-6 text-gray-500">Loading...</td></tr>
+                  <tr><td colSpan={8} className="text-center py-12 text-[#9DA4A6]">Loading records...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center p-6 text-gray-500">No records found</td></tr>
+                  <tr><td colSpan={8} className="text-center py-12 text-[#9DA4A6]">No records found</td></tr>
                 ) : paged.map(item => (
-                  <tr key={item.id} className="border-t hover:bg-gray-50">
-                    <td className="p-3 text-sm">{item.created_at}</td>
-                    <td className="p-3 text-sm">{item.id_number ?? '-'}</td>
-                    <td className="p-3 text-sm">{item.name}</td>
-                    <td className="p-3 text-sm">{item.email ?? '-'}</td>
-                    <td className="p-3 text-sm">{item.phone ?? '-'}</td>
-                    <td className="p-3 text-sm">{item.course}</td>
-                    <td className="p-3 text-sm">{item.year}</td>
-                    <td className="p-3 text-sm">{item.purpose}</td>
+                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-[#4B4C58] whitespace-nowrap">{item.created_at}</td>
+                    <td className="px-4 py-3 text-sm text-[#4B4C58]">{item.id_number ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-[#4B4C58]">{item.name}</td>
+                    <td className="px-4 py-3 text-sm text-[#9DA4A6]">{item.email ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-[#9DA4A6]">{item.phone ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#1B764C]/10 text-[#1B764C]">
+                        {item.course}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#4B4C58]">{item.year}</td>
+                    <td className="px-4 py-3 text-sm text-[#9DA4A6]">{item.purpose}</td>
                   </tr>
                 ))}
               </tbody>
@@ -217,6 +272,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
             <Pagination page={page} totalPages={totalPages} total={total} onPage={setPage} />
           )}
         </div>
+
       </div>
     </Layout>
   );

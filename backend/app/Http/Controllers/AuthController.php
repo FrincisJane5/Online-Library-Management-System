@@ -47,11 +47,16 @@ class AuthController extends Controller
 
         // Return only the fields the frontend needs — never expose the password
         return response()->json([
-            'id'       => (string) $user->id,
-            'username' => $user->username,
-            'fullName' => $user->full_name,
-            'role'     => $user->role,
-            'status'   => $user->status,
+            'id'            => (string) $user->id,
+            'username'      => $user->username,
+            'fullName'      => $user->full_name,
+            'firstName'     => $user->first_name,
+            'lastName'      => $user->last_name,
+            'role'          => $user->role,
+            'status'        => $user->status,
+            'email'         => $user->email,
+            'contactNumber' => $user->contact_number,
+            'profilePicture' => $user->profile_picture,
         ]);
     }
 }

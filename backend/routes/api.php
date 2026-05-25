@@ -71,6 +71,9 @@ Route::middleware([])->group(function () {
 
     // Settings — read is open to staff; write is admin-only (see below)
     Route::get('/settings', [LibrarySettingController::class, 'show']);
+    
+    // Profile picture upload for current user
+    Route::post('/profile/picture', [UserManagementController::class, 'uploadCurrentUserProfilePicture']);
 });
 
 // ─── Admin-only routes ────────────────────────────────────────────────────────
@@ -81,6 +84,7 @@ Route::middleware(['admin'])->group(function () {
     Route::get('/users',                         [UserManagementController::class, 'index']);
     Route::post('/users',                        [UserManagementController::class, 'store']);
     Route::put('/users/{user}',                  [UserManagementController::class, 'update']);
+    Route::post('/users/{user}/profile-picture', [UserManagementController::class, 'uploadProfilePicture']);
     Route::patch('/users/{user}/status',         [UserManagementController::class, 'setStatus']);
     Route::patch('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword']);
 

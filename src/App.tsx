@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import type { User } from './types';
 import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
 
 import LoginScreen from './components/LoginScreen';
 import LibrarianDashboard from './components/LibrarianDashboard';
@@ -21,6 +22,7 @@ import BorrowingPage from './features/borrowing/BorrowingPage';
 import ReportsPage from './features/reports/ReportsPage';
 import ActivityLogsPage from './features/logs/ActivityLogsPage';
 import api from './api/axios';
+import { profileService } from './api/profile';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -72,7 +74,7 @@ function App() {
   const handleLogout = () => { setCurrentUser(null); setClosedPopup(false); };
 
   const withLayout = (element: React.ReactNode) => (
-    <Layout user={currentUser!} onLogout={handleLogout}>{element}</Layout>
+    <Layout user={currentUser!} onLogout={handleLogout} onUserUpdate={setCurrentUser}>{element}</Layout>
   );
 
   const protect = (element: React.ReactNode, role: 'admin' | 'staff') => (

@@ -1,21 +1,35 @@
 // React imports for state management and child rendering
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
 // React Router for navigation links and current path detection
 import { Link, useLocation } from 'react-router-dom';
 // Lucide icons used in the sidebar navigation
 import {
   BookOpen, LayoutDashboard, Users, BookMarked,
   AlertCircle, Bell, Settings, FileText, Activity,
-  Menu, X, LogOut
+  Menu, X, LogOut, User as UserIcon, Mail, Phone
 } from 'lucide-react';
 import { User } from '../types';
 import logoImage from '../assets/logo.png';
+import ProfilePicture from './ProfilePicture';
+import { profileService } from '../api/profile';
+import { toast } from 'sonner';
 
 // Props accepted by the Layout wrapper component
 interface LayoutProps {
   user: User;          // Logged-in user — used to show name, role badge, and filter menu items
   onLogout: () => void; // Called when the user clicks the Logout button
+  onUserUpdate?: (user: User) => void; // Called when user data is updated (e.g., profile picture)
   children: ReactNode; // The page content rendered inside the main area
+}
+
+// Small helper to render a label/value row in the profile dropdown
+function ProfileRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-[#9DA4A6] w-24 flex-shrink-0">{label}</span>
+      <span className="text-[#4B4C58] font-medium text-right break-all">{value || '—'}</span>
+    </div>
+  );
 }
 
 /**
@@ -23,12 +37,46 @@ interface LayoutProps {
  * Renders the top navigation bar, collapsible sidebar, and main content area.
  * Menu items are filtered based on the user's role (admin sees more items than staff).
  */
-export default function Layout({ user, onLogout, children }: LayoutProps) {
+export default function Layout({ user, onLogout, onUserUpdate, children }: LayoutProps) {
   const location = useLocation();                    // Used to highlight the active menu item
   const [sidebarOpen, setSidebarOpen] = useState(false); // Controls mobile sidebar visibility
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const isAdmin  = user.role === 'admin';
   const basePath = isAdmin ? '/admin' : '/staff';    // Route prefix differs by role
+
+  // Handle profile picture upload
+  const handleProfilePictureChange = async (file: File) => {
+    try {
+      const response = await profileService.uploadProfilePicture(file);
+      const updatedUser = { ...user, profilePicture: response.profile_picture };
+      
+      // Update localStorage
+      localStorage.setItem('library_current_user', JSON.stringify(updatedUser));
+      
+      // Update parent component state
+      if (onUserUpdate) {
+        onUserUpdate(updatedUser);
+      }
+      
+      toast.success('Profile picture updated successfully');
+    } catch (error) {
+      console.error('Failed to upload profile picture:', error);
+      toast.error('Failed to upload profile picture');
+    }
+  };
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfile(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Build the sidebar menu — admin-only items are conditionally included
   const menuItems = [
@@ -71,23 +119,96 @@ export default function Layout({ user, onLogout, children }: LayoutProps) {
             </div>
           </div>
 
-          {/* User info and avatar */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-[#4B4C58]">{user.fullName}</p>
-              <div className="flex items-center justify-end gap-2">
-                {/* Role badge — orange for admin, green for staff */}
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-white ${
-                  isAdmin ? 'bg-[#EF8B2D]' : 'bg-[#1B764C]'
-                }`}>
-                  {isAdmin ? 'Admin' : 'Staff'}
-                </span>
+          {/* User info and avatar — clickable to open profile dropdown */}
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setShowProfile(!showProfile)}
+              className="flex items-center gap-3 hover:bg-[#F5F6F5] rounded-lg px-2 py-1 transition-colors"
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-[#4B4C58]">{user.fullName}</p>
+                <div className="flex items-center justify-end gap-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-white ${
+                    isAdmin ? 'bg-[#EF8B2D]' : 'bg-[#1B764C]'
+                  }`}>
+                    {isAdmin ? 'Admin' : 'Staff'}
+                  </span>
+                </div>
               </div>
-            </div>
-            {/* Avatar circle showing first letter of the user's name */}
-            <div className="w-10 h-10 bg-[#79C39F] rounded-full flex items-center justify-center">
-              <span className="text-[#4B4C58]">{user.fullName.charAt(0)}</span>
-            </div>
+              <ProfilePicture 
+                currentPicture={user.profilePicture} 
+                onPictureChange={handleProfilePictureChange}
+                size="small"
+                editable={false}
+              />
+            </button>
+
+            {/* Profile dropdown */}
+            {showProfile && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-[#E5E7EB] z-50 overflow-hidden">
+                {/* Header with avatar + greeting */}
+                <div className="bg-[#1B764C] px-6 py-5 flex items-center gap-4">
+                  <ProfilePicture 
+                    currentPicture={user.profilePicture} 
+                    onPictureChange={handleProfilePictureChange}
+                    size="large"
+                    editable={true}
+                  />
+                  <div className="flex-1">
+                    <p className="text-white/80 text-xs">Welcome,</p>
+                    <p className="text-white font-semibold leading-tight text-lg">{user.fullName}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-white text-xs mt-1 ${
+                      isAdmin ? 'bg-[#EF8B2D]' : 'bg-[#016937]'
+                    }`}>
+                      {isAdmin ? 'Admin' : 'Staff'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Profile details */}
+                <div className="px-6 py-5 space-y-4">
+                  <div className="flex items-center gap-3 text-sm">
+                    <UserIcon className="w-4 h-4 text-[#9DA4A6]" />
+                    <div className="flex-1">
+                      <p className="text-[#9DA4A6] text-xs">Username</p>
+                      <p className="text-[#4B4C58] font-medium">{user.username}</p>
+                    </div>
+                  </div>
+                  
+                  {user.email && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="w-4 h-4 text-[#9DA4A6]" />
+                      <div className="flex-1">
+                        <p className="text-[#9DA4A6] text-xs">Email</p>
+                        <p className="text-[#4B4C58] font-medium break-all">{user.email}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {user.contactNumber && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="w-4 h-4 text-[#9DA4A6]" />
+                      <div className="flex-1">
+                        <p className="text-[#9DA4A6] text-xs">Contact Number</p>
+                        <p className="text-[#4B4C58] font-medium">{user.contactNumber}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="pt-2 border-t border-[#E5E7EB]">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        <div className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[#9DA4A6] text-xs">Status</p>
+                        <p className="text-[#4B4C58] font-medium">{user.status || 'Active'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -140,7 +261,7 @@ export default function Layout({ user, onLogout, children }: LayoutProps) {
 
       {/* ── Main Content ───────────────────────────────────────────────── */}
       {/* Offset by sidebar width (lg:ml-64) on desktop */}
-      <main className="lg:ml-64 min-h-[calc(100vh-73px)] bg-[#F5F6F5] p-4 lg:p-6">
+      <main className="lg:ml-64 min-h-[calc(100vh-73px)] bg-[#F5F6F5] p-4 sm:p-6 lg:p-8">
         {children}
       </main>
 

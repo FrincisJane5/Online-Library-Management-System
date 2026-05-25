@@ -118,6 +118,49 @@ class UserManagementController extends Controller
     }
 
     /**
+     * POST /api/users/{user}/profile-picture
+     * Uploads and updates a user's profile picture.
+     */
+    public function uploadProfilePicture(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
+        ]);
+
+        $file = $validated['profile_picture'];
+        
+        // Create uploads directory if it doesn't exist
+        $uploadPath = storage_path('app/public/profile-pictures');
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        // Generate unique filename
+        $filename = $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        
+        // Delete old profile picture if exists
+        if ($user->profile_picture) {
+            $oldPath = storage_path('app/public/profile-pictures/' . basename($user->profile_picture));
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+
+        // Store the file
+        $file->move($uploadPath, $filename);
+        
+        // Update user record
+        $user->update([
+            'profile_picture' => '/storage/profile-pictures/' . $filename
+        ]);
+
+        return response()->json([
+            'message' => 'Profile picture updated successfully',
+            'profile_picture' => $user->profile_picture
+        ]);
+    }
+
+    /**
      * PATCH /api/users/{user}/status
      * Activates or deactivates a staff account.
      * Admin accounts cannot be deactivated through this endpoint.
@@ -133,5 +176,25 @@ class UserManagementController extends Controller
 
         $user->update(['status' => $validated['status']]);
         return response()->json(['message' => 'Status updated']);
+    }
+
+    /**
+     * POST /api/profile/picture
+     * Uploads and updates the current user's profile picture.
+     */
+    public function uploadCurrentUserProfilePicture(Request $request)
+    {
+        // Get current user from session or header
+        $userId = $request->header('X-User-Id');
+        if (!$userId) {
+            return response()->json(['message' => 'User not authenticated'], 401);
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        return $this->uploadProfilePicture($request, $user);
     }
 }

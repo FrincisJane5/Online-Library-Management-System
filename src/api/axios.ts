@@ -21,6 +21,8 @@ api.interceptors.request.use((config) => {
         config.headers['X-User-Name'] = user.fullName ?? user.username ?? 'Unknown';
         // Attach the user's role (admin or staff) for the same reason
         config.headers['X-User-Role'] = user.role ?? 'staff';
+        // Attach the user's ID for profile picture uploads
+        config.headers['X-User-Id'] = user.id;
     }
     return config; // Return the modified config so the request proceeds
 });
