@@ -66,13 +66,23 @@ class AttendanceController extends Controller
             return response()->json(['found' => false]);
         }
 
+        // Try to split stored name into parts (first / middle / last)
+        // Stored as "First [Middle] Last [Suffix]" — best-effort split
+        $parts = explode(' ', trim($record->name ?? ''));
+        $firstName  = $parts[0] ?? '';
+        $lastName   = count($parts) > 1 ? $parts[count($parts) - 1] : '';
+        $middleName = count($parts) > 2 ? implode(' ', array_slice($parts, 1, -1)) : '';
+
         return response()->json([
-            'found'  => true,
-            'name'   => $record->name,
-            'email'  => $record->email,
-            'phone'  => $record->phone,
-            'course' => $record->course,
-            'year'   => $record->year,
+            'found'       => true,
+            'name'        => $record->name,
+            'first_name'  => $firstName,
+            'middle_name' => $middleName,
+            'last_name'   => $lastName,
+            'email'       => $record->email,
+            'phone'       => $record->phone,
+            'course'      => $record->course,
+            'year'        => $record->year,
         ]);
     }
 
