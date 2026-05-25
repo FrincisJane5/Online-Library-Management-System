@@ -3,28 +3,29 @@ import axios from 'axios';
 
 // Create a pre-configured axios instance shared across the whole app
 const api = axios.create({
-    baseURL: `${(import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? ''}/api`,  // Use env var for LAN access, fallback to proxy
-    withCredentials: false,   // Don't send cookies — we use header-based identity instead
+    baseURL: `${(import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? ''}/api`,
+    withCredentials: false,
     headers: {
-        'Accept': 'application/json',       // Tell the server we expect JSON responses
-        'Content-Type': 'application/json', // Tell the server we're sending JSON
+        'Accept': 'application/json',
+        // NOTE: Do NOT set a global Content-Type here.
+        // axios sets it automatically per-request (including the multipart boundary for FormData).
     },
 });
 
-// Attach current user identity to every request for activity logging
 api.interceptors.request.use((config) => {
-    // Read the logged-in user from localStorage (set during login)
     const saved = localStorage.getItem('library_current_user');
     if (saved) {
-        const user = JSON.parse(saved); // Parse the JSON string back into an object
-        // Attach the user's full name as a custom header so the backend can log who made the request
+        const user = JSON.parse(saved);
         config.headers['X-User-Name'] = user.fullName ?? user.username ?? 'Unknown';
-        // Attach the user's role (admin or staff) for the same reason
         config.headers['X-User-Role'] = user.role ?? 'staff';
-        // Attach the user's ID for profile picture uploads
-        config.headers['X-User-Id'] = user.id;
+        config.headers['X-User-Id']   = user.id;
     }
-    return config; // Return the modified config so the request proceeds
+    // Set JSON content type only when not sending FormData
+    // (FormData needs axios to set Content-Type automatically with the multipart boundary)
+    if (!(config.data instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json';
+    }
+    return config;
 });
 
 // Export the configured instance as the default export so all files use the same base URL and headers
