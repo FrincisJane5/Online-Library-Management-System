@@ -20,9 +20,10 @@ api.interceptors.request.use((config) => {
         config.headers['X-User-Role'] = user.role ?? 'staff';
         config.headers['X-User-Id']   = user.id;
     }
-    // Set JSON content type only when not sending FormData
-    // (FormData needs axios to set Content-Type automatically with the multipart boundary)
-    if (!(config.data instanceof FormData)) {
+    if (config.data instanceof FormData) {
+        // Let the browser set Content-Type with the correct multipart boundary
+        delete config.headers['Content-Type'];
+    } else {
         config.headers['Content-Type'] = 'application/json';
     }
     return config;
