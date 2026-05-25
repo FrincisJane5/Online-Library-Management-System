@@ -123,40 +123,29 @@ class UserManagementController extends Controller
      */
     public function uploadProfilePicture(Request $request, User $user)
     {
-        $validated = $request->validate([
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $file = $validated['profile_picture'];
-        
-        // Create uploads directory if it doesn't exist
-        $uploadPath = storage_path('app/public/profile-pictures');
-        if (!file_exists($uploadPath)) {
-            mkdir($uploadPath, 0755, true);
-        }
-
-        // Generate unique filename
+        $file     = $request->file('profile_picture');
         $filename = $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-        
-        // Delete old profile picture if exists
+
+        // Delete old picture if stored on disk
         if ($user->profile_picture) {
-            $oldPath = storage_path('app/public/profile-pictures/' . basename($user->profile_picture));
-            if (file_exists($oldPath)) {
-                unlink($oldPath);
+            $old = 'profile-pictures/' . basename($user->profile_picture);
+            if (\Storage::disk('public')->exists($old)) {
+                \Storage::disk('public')->delete($old);
             }
         }
 
-        // Store the file
-        $file->move($uploadPath, $filename);
-        
-        // Update user record
-        $user->update([
-            'profile_picture' => '/storage/profile-pictures/' . $filename
-        ]);
+        // Store via Laravel's Storage facade — works locally and on cloud deployments
+        \Storage::disk('public')->putFileAs('profile-pictures', $file, $filename);
+
+        $user->update(['profile_picture' => '/storage/profile-pictures/' . $filename]);
 
         return response()->json([
-            'message' => 'Profile picture updated successfully',
-            'profile_picture' => $user->profile_picture
+            'message'         => 'Profile picture updated successfully',
+            'profile_picture' => $user->profile_picture,
         ]);
     }
 

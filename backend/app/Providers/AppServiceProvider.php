@@ -24,6 +24,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Ensure the public/storage symlink exists on every boot.
+        // This is a safety net for deployments that don't run `php artisan storage:link`.
+        $link   = public_path('storage');
+        $target = storage_path('app/public');
+
+        if (!is_link($link) && !is_dir($link)) {
+            // Remove the placeholder 0-byte file if it exists
+            if (file_exists($link)) {
+                @unlink($link);
+            }
+            @symlink($target, $link);
+        }
     }
 }

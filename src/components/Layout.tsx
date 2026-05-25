@@ -81,7 +81,7 @@ export default function Layout({ user, onLogout, onUserUpdate, children }: Layou
   // Build the sidebar menu — admin-only items are conditionally included
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard',            path: `${basePath}/dashboard` },
-    { icon: Users,           label: 'Attendance',           path: `${basePath}/attendance` },
+    { icon: Users,           label: 'Student Records',      path: `${basePath}/attendance` },
     { icon: BookOpen,        label: 'Books & Inventory',    path: `${basePath}/books` },
     { icon: BookMarked,      label: 'Borrowing & Returning',path: `${basePath}/borrowing` },
     { icon: AlertCircle,     label: 'Overdue & Fines',      path: `${basePath}/overdue` },

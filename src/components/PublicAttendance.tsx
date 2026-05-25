@@ -130,7 +130,7 @@ export default function PublicAttendance() {
           <div className="bg-[#1B764C] px-6 py-6 flex items-center gap-4">
             <img src={logoImage} alt="Legacy College Logo" className="w-16 h-16 object-contain flex-shrink-0" />
             <div>
-              <h1 className="text-white text-xl font-bold leading-tight">Library Attendance Form</h1>
+              <h1 className="text-white text-xl font-bold leading-tight">Library Student Record Form</h1>
               <p className="text-white/70 text-sm mt-0.5">Legacy College of Compostela</p>
             </div>
           </div>

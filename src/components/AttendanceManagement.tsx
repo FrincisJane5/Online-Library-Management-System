@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState, useRef } from 'react';
 import Layout from './Layout';
 import { User } from '../types';
-import { Search, Download, Printer, Users, Calendar, Filter } from 'lucide-react';
+import { Search, Printer, Users, Calendar, Filter } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../api/axios';
-import { exportCSV } from '../utils';
 import { usePagination } from '../hooks/usePagination';
 import Pagination from './Pagination';
 
@@ -87,33 +86,6 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
     setTimeout(() => win.print(), 300);
   };
 
-  const handleExport = () => exportCSV(
-    filtered.map(r => ({
-      Date: r.created_at, ID: r.id_number ?? '', Name: r.name,
-      Email: r.email ?? '', Phone: r.phone ?? '',
-      Course: r.course, Year: r.year, Purpose: r.purpose,
-    })),
-    'attendance.csv'
-  );
-
-  const handlePrint = () => {
-    const win = window.open('', '', 'width=1000,height=650');
-    win?.document.write(`
-      <html><head><title>Attendance Report</title></head><body>
-      <h2>Library Attendance Report</h2>
-      <table border="1" cellpadding="8" cellspacing="0">
-        <tr><th>Date</th><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Course</th><th>Year</th><th>Purpose</th></tr>
-        ${filtered.map(r => `<tr>
-          <td>${r.created_at}</td><td>${r.id_number ?? ''}</td><td>${r.name}</td>
-          <td>${r.email ?? ''}</td><td>${r.phone ?? ''}</td>
-          <td>${r.course}</td><td>${r.year}</td><td>${r.purpose}</td>
-        </tr>`).join('')}
-      </table></body></html>
-    `);
-    win?.document.close();
-    win?.print();
-  };
-
   const hasActiveFilters = course || year || purpose || search;
 
   return (
@@ -121,21 +93,9 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
       <div className="space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h2 className="text-[#4B4C58] font-bold text-2xl mb-1">Attendance Records</h2>
-            <p className="text-[#9DA4A6] text-sm">View and manage library attendance logs.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 border border-[#9DA4A6] text-[#4B4C58] rounded-lg text-sm hover:bg-gray-50 transition-colors">
-              <Download className="w-4 h-4" /> Export CSV
-            </button>
-            <button onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 border border-[#9DA4A6] text-[#4B4C58] rounded-lg text-sm hover:bg-gray-50 transition-colors">
-              <Printer className="w-4 h-4" /> Print
-            </button>
-          </div>
+        <div>
+          <h2 className="text-[#4B4C58] font-bold text-2xl mb-1">Student Records</h2>
+          <p className="text-[#9DA4A6] text-sm">View and manage library student visit records.</p>
         </div>
 
         {/* Stats + QR Row */}
@@ -158,7 +118,7 @@ export default function AttendanceManagement({ user, onLogout }: AttendanceManag
               <Calendar className="w-6 h-6 text-[#EF8B2D]" />
             </div>
             <div>
-              <p className="text-[#9DA4A6] text-sm">Today's Visits</p>
+              <p className="text-[#9DA4A6] text-sm">Today's Student Visits</p>
               <p className="text-[#4B4C58] text-2xl font-bold">
                 {data.filter(r => r.created_at.startsWith(new Date().toISOString().slice(0, 10))).length}
               </p>

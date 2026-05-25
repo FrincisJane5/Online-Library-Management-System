@@ -24,7 +24,7 @@ class ForceCors
             return response()->noContent(204)
                 ->header('Access-Control-Allow-Origin', $origin)
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
-                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-TOKEN')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-TOKEN, X-User-Name, X-User-Role, X-User-Id')
                 ->header('Access-Control-Allow-Credentials', $allowCredentials)
                 ->header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
         }
@@ -35,7 +35,7 @@ class ForceCors
         return $response
             ->header('Access-Control-Allow-Origin', $origin)
             ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS')
-            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-TOKEN')
+            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-TOKEN, X-User-Name, X-User-Role, X-User-Id')
             ->header('Access-Control-Allow-Credentials', $allowCredentials);
     }
 }

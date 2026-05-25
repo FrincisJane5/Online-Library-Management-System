@@ -100,7 +100,7 @@ export default function StaffDashboard({ user, onLogout }: StaffDashboardProps) 
 
           <button onClick={() => navigate('/staff/attendance')} className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#4B4C58] hover:shadow-md hover:-translate-y-0.5 transition-all text-left">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[#9DA4A6] text-sm font-medium">Students</p>
+              <p className="text-[#9DA4A6] text-sm font-medium">Student Records</p>
               <Users className="w-5 h-5 text-[#4B4C58]" />
             </div>
             <p className="text-[#4B4C58] text-2xl font-bold">{stats.students}</p>

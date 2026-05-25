@@ -108,7 +108,7 @@ export default function LibrarianDashboard({ user, onLogout }: DashboardProps) {
                 <AlertCircle className="w-5 h-5 text-[#EF8B2D]" />
               </div>
             </div>
-            <p className="text-[#9DA4A6] text-sm mb-0.5">Students</p>
+            <p className="text-[#9DA4A6] text-sm mb-0.5">Student Records</p>
             <p className="text-[#4B4C58] text-2xl font-bold">{stats.students}</p>
           </button>
 
