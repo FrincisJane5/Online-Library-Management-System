@@ -124,31 +124,19 @@ class UserManagementController extends Controller
     public function uploadProfilePicture(Request $request, User $user)
     {
         $request->validate([
-            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $file     = $request->file('profile_picture');
-        $filename = $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $mime     = $file->getMimeType();
+        $base64   = base64_encode(file_get_contents($file->getRealPath()));
+        $dataUrl  = "data:{$mime};base64,{$base64}";
 
-        // Delete old picture if stored on disk
-        if ($user->profile_picture) {
-            $old = 'profile-pictures/' . basename($user->profile_picture);
-            if (\Storage::disk('public')->exists($old)) {
-                \Storage::disk('public')->delete($old);
-            }
-        }
-
-        // Store via Laravel's Storage facade — works locally and on cloud deployments
-        \Storage::disk('public')->putFileAs('profile-pictures', $file, $filename);
-
-        // Store just the path segment; build full URL for the response
-        $user->update(['profile_picture' => 'profile-pictures/' . $filename]);
-
-        $fullUrl = url('storage/profile-pictures/' . $filename);
+        $user->update(['profile_picture' => $dataUrl]);
 
         return response()->json([
             'message'         => 'Profile picture updated successfully',
-            'profile_picture' => $fullUrl,
+            'profile_picture' => $dataUrl,
         ]);
     }
 

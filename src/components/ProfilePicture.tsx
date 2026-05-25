@@ -11,7 +11,7 @@ interface ProfilePictureProps {
 // Resolve a potentially relative storage path to a full URL pointing at the backend
 function resolveUrl(url?: string): string | undefined {
   if (!url) return undefined;
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('data:') || url.startsWith('http')) return url;
   const base = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? '';
   return `${base}/${url.replace(/^\//, '')}`;
 }

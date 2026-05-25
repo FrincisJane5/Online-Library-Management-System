@@ -45,15 +45,15 @@ class AuthController extends Controller
         // Record the login timestamp for the "Last Login" column in User Management
         $user->update(['last_login' => now()]);
 
-        // Build full URL for profile picture (stored as relative path in DB)
+        // Build full URL for profile picture
         $profilePicture = null;
         if ($user->profile_picture) {
             $pic = $user->profile_picture;
-            // Already a full URL (http/https) — use as-is
-            if (str_starts_with($pic, 'http')) {
+            if (str_starts_with($pic, 'data:') || str_starts_with($pic, 'http')) {
+                // Already a data URL or full URL — use as-is
                 $profilePicture = $pic;
             } else {
-                // Strip leading slash/storage prefix if present, then build full URL
+                // Legacy relative path — build full URL
                 $pic = ltrim($pic, '/');
                 $pic = preg_replace('#^storage/#', '', $pic);
                 $profilePicture = url('storage/' . $pic);
