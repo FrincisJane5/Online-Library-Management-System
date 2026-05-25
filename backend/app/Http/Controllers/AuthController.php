@@ -45,18 +45,33 @@ class AuthController extends Controller
         // Record the login timestamp for the "Last Login" column in User Management
         $user->update(['last_login' => now()]);
 
+        // Build full URL for profile picture (stored as relative path in DB)
+        $profilePicture = null;
+        if ($user->profile_picture) {
+            $pic = $user->profile_picture;
+            // Already a full URL (http/https) — use as-is
+            if (str_starts_with($pic, 'http')) {
+                $profilePicture = $pic;
+            } else {
+                // Strip leading slash/storage prefix if present, then build full URL
+                $pic = ltrim($pic, '/');
+                $pic = preg_replace('#^storage/#', '', $pic);
+                $profilePicture = url('storage/' . $pic);
+            }
+        }
+
         // Return only the fields the frontend needs — never expose the password
         return response()->json([
-            'id'            => (string) $user->id,
-            'username'      => $user->username,
-            'fullName'      => $user->full_name,
-            'firstName'     => $user->first_name,
-            'lastName'      => $user->last_name,
-            'role'          => $user->role,
-            'status'        => $user->status,
-            'email'         => $user->email,
-            'contactNumber' => $user->contact_number,
-            'profilePicture' => $user->profile_picture,
+            'id'             => (string) $user->id,
+            'username'       => $user->username,
+            'fullName'       => $user->full_name,
+            'firstName'      => $user->first_name,
+            'lastName'       => $user->last_name,
+            'role'           => $user->role,
+            'status'         => $user->status,
+            'email'          => $user->email,
+            'contactNumber'  => $user->contact_number,
+            'profilePicture' => $profilePicture,
         ]);
     }
 }

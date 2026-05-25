@@ -8,13 +8,12 @@ interface ProfilePictureProps {
   editable?: boolean;
 }
 
-// Resolve a profile picture path to a full URL.
-// Backend stores paths like '/storage/profile-pictures/filename.jpg' — prepend the backend origin.
-function resolveImageUrl(path?: string): string | undefined {
-  if (!path) return undefined;
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) return path;
-  const backendBase = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://127.0.0.1:8000';
-  return `${backendBase}${path}`;
+// Resolve a potentially relative storage path to a full URL pointing at the backend
+function resolveUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  const base = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? '';
+  return `${base}/${url.replace(/^\//, '')}`;
 }
 
 export default function ProfilePicture({ 
@@ -24,7 +23,6 @@ export default function ProfilePicture({
   editable = false 
 }: ProfilePictureProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sizeClasses = {
@@ -36,33 +34,26 @@ export default function ProfilePicture({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      // Show a local preview immediately while the upload happens
-      setPreviewUrl(URL.createObjectURL(file));
       onPictureChange(file);
     }
   };
 
-  const handleClick = () => {
-    if (editable) fileInputRef.current?.click();
-  };
-
-  // Use local preview first (just selected), then resolved backend URL
-  const displaySrc = previewUrl ?? resolveImageUrl(currentPicture);
+  const resolvedPicture = resolveUrl(currentPicture);
 
   return (
     <div 
       className={`${sizeClasses[size]} relative ${editable ? 'cursor-pointer' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
+      onClick={() => editable && fileInputRef.current?.click()}
     >
       <div className={`${sizeClasses[size]} bg-white border-2 border-[#9DA4A6] rounded-full flex items-center justify-center overflow-hidden`}>
-        {displaySrc ? (
+        {resolvedPicture ? (
           <img 
-            src={displaySrc}
+            src={resolvedPicture} 
             alt="Profile" 
             className="w-full h-full object-cover"
-            onError={() => setPreviewUrl(undefined)} // fallback to default avatar on broken URL
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         ) : (
           <svg viewBox="0 0 40 40" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">

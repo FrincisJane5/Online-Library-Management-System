@@ -141,11 +141,14 @@ class UserManagementController extends Controller
         // Store via Laravel's Storage facade — works locally and on cloud deployments
         \Storage::disk('public')->putFileAs('profile-pictures', $file, $filename);
 
-        $user->update(['profile_picture' => '/storage/profile-pictures/' . $filename]);
+        // Store just the path segment; build full URL for the response
+        $user->update(['profile_picture' => 'profile-pictures/' . $filename]);
+
+        $fullUrl = url('storage/profile-pictures/' . $filename);
 
         return response()->json([
             'message'         => 'Profile picture updated successfully',
-            'profile_picture' => $user->profile_picture,
+            'profile_picture' => $fullUrl,
         ]);
     }
 
